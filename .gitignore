@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.env
+*.db
+*.log
+artifacts/*
+!artifacts/README.md
+local_s3_bucket/*
+!local_s3_bucket/README.md
+screenshots/*
+!screenshots/README.md
