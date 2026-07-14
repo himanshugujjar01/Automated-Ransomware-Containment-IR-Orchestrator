@@ -110,3 +110,47 @@ def receive_edr_alert(
         "process_hash": db_alert.process_hash,
         "status": db_alert.status
     }
+
+@app.get("/alerts")
+def get_all_alerts(db: Session = Depends(get_db)):
+    """
+    Fetch all EDR alerts stored in the database.
+    """
+
+    alerts = db.query(Alert).order_by(Alert.created_at.desc()).all()
+
+    return {
+        "total_alerts": len(alerts),
+        "alerts": alerts
+    }
+
+
+@app.get("/alerts/{alert_id}")
+def get_alert_by_id(alert_id: str, db: Session = Depends(get_db)):
+    """
+    Fetch details of a single EDR alert using alert_id.
+    """
+
+    clean_alert_id = alert_id.strip()
+
+    alert = db.query(Alert).filter(Alert.alert_id == clean_alert_id).first()
+
+    if not alert:
+        raise HTTPException(
+            status_code=404,
+            detail="Alert not found"
+        )
+
+    return {
+        "alert_id": alert.alert_id,
+        "severity": alert.severity,
+        "detection_type": alert.detection_type,
+        "hostname": alert.hostname,
+        "ip_address": alert.ip_address,
+        "username": alert.username,
+        "process_name": alert.process_name,
+        "process_hash": alert.process_hash,
+        "description": alert.description,
+        "status": alert.status,
+        "created_at": alert.created_at
+    }
