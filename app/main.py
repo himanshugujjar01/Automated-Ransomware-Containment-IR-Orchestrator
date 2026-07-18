@@ -13,6 +13,7 @@ from app.models.ticket_model import Ticket
 
 from app.schemas.edr_schema import EDRAlert
 from app.services.alert_parser import parse_edr_alert
+from app.services.playbook_engine import run_basic_containment_playbook
 
 
 # Create database tables
@@ -153,4 +154,34 @@ def get_alert_by_id(alert_id: str, db: Session = Depends(get_db)):
         "description": alert.description,
         "status": alert.status,
         "created_at": alert.created_at
+    }
+
+@app.post("/playbooks/{alert_id}/run")
+def run_playbook_for_alert(alert_id: str, db: Session = Depends(get_db)):
+    """
+    Runs the ransomware containment playbook for a specific alert.
+
+    Playbook actions:
+    1. Host isolation
+    2. User suspension
+    3. Session revocation
+    4. Action logging
+    5. Alert status update
+    """
+
+    clean_alert_id = alert_id.strip()
+
+    alert = db.query(Alert).filter(Alert.alert_id == clean_alert_id).first()
+
+    if not alert:
+        raise HTTPException(
+            status_code=404,
+            detail="Alert not found"
+        )
+
+    result = run_basic_containment_playbook(db, alert)
+
+    return {
+        "message": "Containment playbook executed successfully",
+        "result": result
     }
