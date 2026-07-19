@@ -185,3 +185,45 @@ def run_playbook_for_alert(alert_id: str, db: Session = Depends(get_db)):
         "message": "Containment playbook executed successfully",
         "result": result
     }
+
+@app.get("/actions/{alert_id}")
+def get_actions_for_alert(alert_id: str, db: Session = Depends(get_db)):
+    """
+    Fetch all automated response actions performed for a specific alert.
+
+    Example actions:
+    - host_isolation
+    - user_suspension
+    - session_revocation
+    """
+
+    clean_alert_id = alert_id.strip()
+
+    alert = db.query(Alert).filter(Alert.alert_id == clean_alert_id).first()
+
+    if not alert:
+        raise HTTPException(
+            status_code=404,
+            detail="Alert not found"
+        )
+
+    actions = db.query(ActionLog).filter(
+        ActionLog.alert_id == clean_alert_id
+    ).order_by(ActionLog.started_at.asc()).all()
+
+    return {
+        "alert_id": clean_alert_id,
+        "total_actions": len(actions),
+        "actions": [
+            {
+                "id": action.id,
+                "action_type": action.action_type,
+                "target": action.target,
+                "status": action.status,
+                "details": action.details,
+                "started_at": action.started_at,
+                "completed_at": action.completed_at
+            }
+            for action in actions
+        ]
+    }
