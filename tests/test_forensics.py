@@ -30,6 +30,20 @@ def test_collect_basic_forensic_evidence():
     assert result["status"] == "success"
     assert result["alert_id"] == "TEST-FORENSICS-002"
     assert os.path.exists(result["artifact_dir"])
-    assert len(result["files_created"]) == 1
-    assert os.path.exists(result["files_created"][0])
-    assert result["files_created"][0].endswith("triage_summary.json")
+    assert result["total_files"] == 5
+    assert len(result["files_created"]) == 5
+
+    expected_files = [
+        "triage_summary.json",
+        "process_list.txt",
+        "network_connections.txt",
+        "suspicious_hashes.txt",
+        "memory_dump_metadata.txt"
+    ]
+
+    for expected_file in expected_files:
+        full_path = os.path.join(result["artifact_dir"], expected_file)
+        assert os.path.exists(full_path)
+
+    for file_path in result["files_created"]:
+        assert os.path.exists(file_path)
