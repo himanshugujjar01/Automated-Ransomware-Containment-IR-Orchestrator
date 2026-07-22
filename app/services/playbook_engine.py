@@ -1,4 +1,5 @@
 from app.models.action_model import ActionLog
+from app.models.artifact_model import Artifact
 from app.services.containment import isolate_host
 from app.services.identity_response import suspend_user, revoke_sessions
 
@@ -21,6 +22,38 @@ def save_action_log(db, alert_id: str, action_result: dict):
     db.refresh(log)
 
     return log
+
+def save_artifact_log(
+    db,
+    alert_id: str,
+    file_path: str,
+    sha256_hash: str,
+    storage_path: str,
+    artifact_type: str = "forensic_evidence"
+):
+    """
+    Saves forensic artifact metadata into the artifacts database table.
+
+    Example:
+    - alert_id: EDR-2026-002
+    - file_path: artifacts/EDR-2026-002/triage_summary.json
+    - sha256_hash: 64-character SHA-256 hash
+    - storage_path: local_s3_bucket/forensic-evidence/EDR-2026-002/triage_summary.json
+    """
+
+    artifact = Artifact(
+        alert_id=alert_id,
+        artifact_type=artifact_type,
+        file_path=file_path,
+        sha256_hash=sha256_hash,
+        storage_path=storage_path
+    )
+
+    db.add(artifact)
+    db.commit()
+    db.refresh(artifact)
+
+    return artifact
 
 
 def run_basic_containment_playbook(db, alert):
