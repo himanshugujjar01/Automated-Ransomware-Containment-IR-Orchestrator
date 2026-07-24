@@ -37,6 +37,8 @@ from app.services.idp_response_runner import (
 
 from app.services.edr_response_runner import run_approved_host_isolation
 from app.services.approved_containment_runner import run_full_approved_containment_response
+from app.services.alert_approved_playbook import run_alert_based_approved_playbook
+from app.services.validation_report import get_week1_week2_validation_report
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -519,3 +521,49 @@ def full_approved_containment_response(
         approval_code=approval_code,
         dry_run=dry_run
     )
+
+@app.post("/playbooks/{alert_id}/approved-run")
+def run_approved_playbook_for_alert(
+    alert_id: str,
+    approval_code: str,
+    dry_run: bool = True,
+    db: Session = Depends(get_db)
+):
+    """
+    Runs approved containment workflow for a saved EDR alert.
+
+    Actions:
+    1. Host isolation
+    2. User suspension
+    3. Session revocation
+
+    dry_run=True is safe and does not perform real EDR or Azure AD changes.
+    """
+
+    clean_alert_id = alert_id.strip()
+
+    alert = db.query(Alert).filter(Alert.alert_id == clean_alert_id).first()
+
+    if not alert:
+        raise HTTPException(
+            status_code=404,
+            detail="Alert not found"
+        )
+
+    return run_alert_based_approved_playbook(
+        db=db,
+        alert=alert,
+        approval_code=approval_code,
+        dry_run=dry_run
+    )
+
+@app.get(
+    "/validation",
+    summary="Validation Report"
+)
+def validation_report():
+    """
+    Shows Project 3 Week 1 and Week 2 requirement completion report.
+    """
+
+    return get_week1_week2_validation_report()
