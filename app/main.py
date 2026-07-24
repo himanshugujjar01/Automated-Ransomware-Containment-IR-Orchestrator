@@ -17,9 +17,26 @@ from app.services.playbook_engine import run_basic_containment_playbook
 from app.config import USE_REAL_EDR, USE_REAL_IDP, REQUIRE_MANUAL_APPROVAL, ALLOWED_TEST_HOSTS, ALLOWED_TEST_USERS
 from app.integrations.defender_edr import (
     get_defender_status,
-    fetch_and_normalize_high_severity_alerts
+    fetch_and_normalize_high_severity_alerts,
+    find_machine_by_hostname,
+    isolate_machine_by_hostname
 )
 
+from app.integrations.azure_ad import (
+    get_graph_status,
+    find_user_by_username,
+    disable_user_account,
+    revoke_user_sessions
+)
+
+from app.services.idp_response_runner import (
+    run_approved_user_suspension,
+    run_approved_session_revocation,
+    run_full_approved_identity_response
+)
+
+from app.services.edr_response_runner import run_approved_host_isolation
+from app.services.approved_containment_runner import run_full_approved_containment_response
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -320,3 +337,185 @@ def fetch_defender_alerts(
         "duplicate_alerts": duplicate_alerts,
         "normalized_alerts": result["normalized_alerts"]
     }
+
+@app.get("/edr/defender/machines/lookup")
+def lookup_defender_machine(hostname: str):
+    """
+    Looks up a Microsoft Defender machine by hostname.
+
+    This is read-only and does not isolate any device.
+    """
+
+    return find_machine_by_hostname(hostname)
+
+@app.post("/edr/defender/machines/isolate-preview")
+def defender_isolation_preview(hostname: str):
+    """
+    Safe isolation preview.
+
+    This always runs in dry-run mode.
+    It does not isolate a real device.
+    """
+
+    result = isolate_machine_by_hostname(
+        hostname=hostname,
+        comment=f"Dry-run isolation preview for {hostname}",
+        isolation_type="Selective",
+        dry_run=True
+    )
+
+    return result
+
+@app.get("/integrations/graph/status")
+def graph_integration_status():
+    """
+    Shows Microsoft Graph / Azure AD connector configuration status.
+    """
+
+    return get_graph_status()
+
+@app.get("/idp/azure/users/lookup")
+def lookup_azure_user(username: str):
+    """
+    Looks up a Microsoft Graph / Azure AD user.
+
+    This is read-only.
+    """
+
+    return find_user_by_username(username)
+
+@app.post("/idp/azure/users/suspend-preview")
+def azure_user_suspend_preview(username: str):
+    """
+    Safe user suspension preview.
+
+    This always runs in dry-run mode.
+    It does not disable a real user.
+    """
+
+    return disable_user_account(
+        user_id_or_upn=username,
+        dry_run=True
+    )
+
+@app.post("/idp/azure/users/revoke-sessions-preview")
+def azure_user_revoke_sessions_preview(username: str):
+    """
+    Safe session revocation preview.
+
+    This always runs in dry-run mode.
+    It does not revoke real user sessions.
+    """
+
+    return revoke_user_sessions(
+        user_id_or_upn=username,
+        dry_run=True
+    )
+
+@app.post("/idp/azure/users/suspend-approved")
+def azure_user_suspend_approved(
+    username: str,
+    approval_code: str,
+    dry_run: bool = True
+):
+    """
+    Approved Azure AD user suspension workflow.
+
+    dry_run=True is safe and does not disable a real account.
+    dry_run=False should only be used in an authorized lab tenant.
+    """
+
+    return run_approved_user_suspension(
+        username=username,
+        approval_code=approval_code,
+        dry_run=dry_run
+    )
+
+@app.post("/idp/azure/users/revoke-sessions-approved")
+def azure_user_revoke_sessions_approved(
+    username: str,
+    approval_code: str,
+    dry_run: bool = True
+):
+    """
+    Approved Azure AD session revocation workflow.
+
+    dry_run=True is safe and does not revoke real sessions.
+    dry_run=False should only be used in an authorized lab tenant.
+    """
+
+    return run_approved_session_revocation(
+        username=username,
+        approval_code=approval_code,
+        dry_run=dry_run
+    )
+
+@app.post("/idp/azure/users/respond-approved")
+def azure_user_full_identity_response(
+    username: str,
+    approval_code: str,
+    dry_run: bool = True
+):
+    """
+    Full approved identity response workflow.
+
+    Actions:
+    1. Suspend user
+    2. Revoke sessions
+
+    dry_run=True is safe and does not change real Azure AD accounts.
+    """
+
+    return run_full_approved_identity_response(
+        username=username,
+        approval_code=approval_code,
+        dry_run=dry_run
+    )
+
+@app.post("/edr/defender/host/isolate-approved")
+def approved_host_isolation(
+    hostname: str,
+    ip_address: str,
+    approval_code: str,
+    dry_run: bool = True
+):
+    """
+    Approved host isolation workflow.
+
+    dry_run=True is safe and does not isolate a real machine.
+    dry_run=False should only be used in an authorized lab tenant.
+    """
+
+    return run_approved_host_isolation(
+        hostname=hostname,
+        ip_address=ip_address,
+        approval_code=approval_code,
+        dry_run=dry_run
+    )
+
+@app.post("/response/full-containment-approved")
+def full_approved_containment_response(
+    hostname: str,
+    ip_address: str,
+    username: str,
+    approval_code: str,
+    dry_run: bool = True
+):
+    """
+    Full approved containment workflow.
+
+    Actions:
+    1. Host isolation
+    2. User suspension
+    3. Session revocation
+
+    dry_run=True is safe and does not perform real EDR or Azure AD changes.
+    """
+
+    return run_full_approved_containment_response(
+        hostname=hostname,
+        ip_address=ip_address,
+        username=username,
+        approval_code=approval_code,
+        dry_run=dry_run
+    )

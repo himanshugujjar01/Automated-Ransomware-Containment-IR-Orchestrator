@@ -31,3 +31,12 @@ MDE_CLIENT_SECRET = os.getenv("MDE_CLIENT_SECRET", "change_me")
 MDE_API_BASE_URL = os.getenv("MDE_API_BASE_URL", "https://api.security.microsoft.com")
 MDE_AUTHORITY_URL = os.getenv("MDE_AUTHORITY_URL", "https://login.microsoftonline.com")
 MDE_SCOPE = os.getenv("MDE_SCOPE", "https://api.securitycenter.microsoft.com/.default")
+
+GRAPH_TENANT_ID = os.getenv("GRAPH_TENANT_ID", "change_me")
+GRAPH_CLIENT_ID = os.getenv("GRAPH_CLIENT_ID", "change_me")
+GRAPH_CLIENT_SECRET = os.getenv("GRAPH_CLIENT_SECRET", "change_me")
+GRAPH_API_BASE_URL = os.getenv("GRAPH_API_BASE_URL", "https://graph.microsoft.com/v1.0")
+GRAPH_AUTHORITY_URL = os.getenv("GRAPH_AUTHORITY_URL", "https://login.microsoftonline.com")
+GRAPH_SCOPE = os.getenv("GRAPH_SCOPE", "https://graph.microsoft.com/.default")
+
+REAL_ACTION_APPROVAL_CODE = os.getenv("REAL_ACTION_APPROVAL_CODE", "confirm_lab_only")
