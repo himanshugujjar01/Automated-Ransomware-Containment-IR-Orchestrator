@@ -14,6 +14,11 @@ from app.models.ticket_model import Ticket
 from app.schemas.edr_schema import EDRAlert
 from app.services.alert_parser import parse_edr_alert
 from app.services.playbook_engine import run_basic_containment_playbook
+from app.config import USE_REAL_EDR, USE_REAL_IDP, REQUIRE_MANUAL_APPROVAL, ALLOWED_TEST_HOSTS, ALLOWED_TEST_USERS
+from app.integrations.defender_edr import (
+    get_defender_status,
+    fetch_and_normalize_high_severity_alerts
+)
 
 
 # Create database tables
@@ -226,4 +231,92 @@ def get_actions_for_alert(alert_id: str, db: Session = Depends(get_db)):
             }
             for action in actions
         ]
+    }
+
+@app.get("/safety/config")
+def get_safety_config():
+    """
+    Shows current real-mode and sandbox safety configuration.
+    """
+
+    return {
+        "use_real_edr": USE_REAL_EDR,
+        "use_real_idp": USE_REAL_IDP,
+        "require_manual_approval": REQUIRE_MANUAL_APPROVAL,
+        "allowed_test_hosts": ALLOWED_TEST_HOSTS,
+        "allowed_test_users": ALLOWED_TEST_USERS,
+        "message": "Safety guard configuration loaded successfully"
+    }
+
+@app.get("/integrations/defender/status")
+def defender_integration_status():
+    """
+    Shows Microsoft Defender connector configuration status.
+    """
+
+    return get_defender_status()
+
+@app.get("/edr/defender/alerts")
+def fetch_defender_alerts(
+    save_to_db: bool = False,
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """
+    Fetches high-severity Microsoft Defender alerts.
+
+    save_to_db=false:
+    - Only fetches and normalizes alerts.
+
+    save_to_db=true:
+    - Saves normalized Defender alerts into the local database.
+    """
+
+    result = fetch_and_normalize_high_severity_alerts(limit=limit)
+
+    if not result.get("configured"):
+        return result
+
+    saved_alerts = []
+    duplicate_alerts = []
+
+    if save_to_db:
+        for parsed in result["normalized_alerts"]:
+            existing_alert = db.query(Alert).filter(
+                Alert.alert_id == parsed["alert_id"]
+            ).first()
+
+            if existing_alert:
+                duplicate_alerts.append(parsed["alert_id"])
+                continue
+
+            db_alert = Alert(
+                alert_id=parsed["alert_id"],
+                severity=parsed["severity"],
+                detection_type=parsed["detection_type"],
+                hostname=parsed["hostname"],
+                ip_address=parsed["ip_address"],
+                username=parsed["username"],
+                process_name=parsed["process_name"],
+                process_hash=parsed["process_hash"],
+                description=parsed["description"],
+                status="received",
+                raw_payload=json.dumps(parsed)
+            )
+
+            db.add(db_alert)
+            db.commit()
+            db.refresh(db_alert)
+
+            saved_alerts.append(db_alert.alert_id)
+
+    return {
+        "integration": result["integration"],
+        "configured": result["configured"],
+        "fetched": result["fetched"],
+        "normalized_count": result["normalized_count"],
+        "save_to_db": save_to_db,
+        "saved_alerts": saved_alerts,
+        "duplicate_alerts": duplicate_alerts,
+        "normalized_alerts": result["normalized_alerts"]
     }
