@@ -39,6 +39,7 @@ from app.services.edr_response_runner import run_approved_host_isolation
 from app.services.approved_containment_runner import run_full_approved_containment_response
 from app.services.alert_approved_playbook import run_alert_based_approved_playbook
 from app.services.validation_report import get_week1_week2_validation_report
+from app.services.production_readiness import get_production_readiness_report
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -567,3 +568,14 @@ def validation_report():
     """
 
     return get_week1_week2_validation_report()
+
+@app.get(
+    "/readiness/production",
+    summary="Production Readiness Report"
+)
+def production_readiness_report():
+    """
+    Shows readiness status for production-level integrations.
+    """
+
+    return get_production_readiness_report()
