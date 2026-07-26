@@ -40,6 +40,7 @@ from app.services.approved_containment_runner import run_full_approved_containme
 from app.services.alert_approved_playbook import run_alert_based_approved_playbook
 from app.services.validation_report import get_week1_week2_validation_report
 from app.services.production_readiness import get_production_readiness_report
+from app.services.defender_alert_ingestion import save_defender_alerts_to_db
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
