@@ -19,7 +19,8 @@ from app.integrations.defender_edr import (
     get_defender_status,
     fetch_and_normalize_high_severity_alerts,
     find_machine_by_hostname,
-    isolate_machine_by_hostname
+    isolate_machine_by_hostname,
+    preview_machine_isolation_by_hostname
 )
 
 from app.integrations.azure_ad import (
@@ -41,6 +42,7 @@ from app.services.alert_approved_playbook import run_alert_based_approved_playbo
 from app.services.validation_report import get_week1_week2_validation_report
 from app.services.production_readiness import get_production_readiness_report
 from app.services.defender_alert_ingestion import save_defender_alerts_to_db
+from app.services.edr_machine_readiness import get_machine_isolation_readiness
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -277,68 +279,46 @@ def defender_integration_status():
 
     return get_defender_status()
 
-@app.get("/edr/defender/alerts")
+@app.get(
+    "/edr/defender/alerts",
+    summary="Fetch Defender High Severity Alerts"
+)
 def fetch_defender_alerts(
     save_to_db: bool = False,
     limit: int = 10,
     db: Session = Depends(get_db)
 ):
     """
-    Fetches high-severity Microsoft Defender alerts.
+    Fetches high-severity alerts from Microsoft Defender for Endpoint.
 
-    save_to_db=false:
-    - Only fetches and normalizes alerts.
-
-    save_to_db=true:
-    - Saves normalized Defender alerts into the local database.
+    If save_to_db=true, normalized alerts are saved into the local alerts table.
     """
 
     result = fetch_and_normalize_high_severity_alerts(limit=limit)
 
     if not result.get("configured"):
-        return result
+        return {
+            "message": "Microsoft Defender credentials are pending.",
+            "configured": False,
+            "status": result["status"],
+            "normalized_alerts": []
+        }
 
-    saved_alerts = []
-    duplicate_alerts = []
+    save_result = None
 
     if save_to_db:
-        for parsed in result["normalized_alerts"]:
-            existing_alert = db.query(Alert).filter(
-                Alert.alert_id == parsed["alert_id"]
-            ).first()
-
-            if existing_alert:
-                duplicate_alerts.append(parsed["alert_id"])
-                continue
-
-            db_alert = Alert(
-                alert_id=parsed["alert_id"],
-                severity=parsed["severity"],
-                detection_type=parsed["detection_type"],
-                hostname=parsed["hostname"],
-                ip_address=parsed["ip_address"],
-                username=parsed["username"],
-                process_name=parsed["process_name"],
-                process_hash=parsed["process_hash"],
-                description=parsed["description"],
-                status="received",
-                raw_payload=json.dumps(parsed)
-            )
-
-            db.add(db_alert)
-            db.commit()
-            db.refresh(db_alert)
-
-            saved_alerts.append(db_alert.alert_id)
+        save_result = save_defender_alerts_to_db(
+            db=db,
+            normalized_alerts=result["normalized_alerts"]
+        )
 
     return {
-        "integration": result["integration"],
-        "configured": result["configured"],
-        "fetched": result["fetched"],
-        "normalized_count": result["normalized_count"],
+        "message": "Microsoft Defender alerts fetched successfully.",
+        "configured": True,
+        "status": result["status"],
+        "total_alerts": result["total_alerts"],
         "save_to_db": save_to_db,
-        "saved_alerts": saved_alerts,
-        "duplicate_alerts": duplicate_alerts,
+        "database_result": save_result,
         "normalized_alerts": result["normalized_alerts"]
     }
 
@@ -580,3 +560,25 @@ def production_readiness_report():
     """
 
     return get_production_readiness_report()
+
+@app.get(
+    "/edr/defender/machines/isolation-readiness",
+    summary="Defender Machine Isolation Readiness"
+)
+def defender_machine_isolation_readiness(
+    hostname: str,
+    approval_code: str,
+    isolation_type: str = "Selective"
+):
+    """
+    Checks whether a Defender machine is ready for isolation.
+
+    This is a safe dry-run readiness check.
+    It does not isolate the machine.
+    """
+
+    return get_machine_isolation_readiness(
+        hostname=hostname,
+        approval_code=approval_code,
+        isolation_type=isolation_type
+    )

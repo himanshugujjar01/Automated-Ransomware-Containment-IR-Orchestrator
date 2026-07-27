@@ -799,3 +799,101 @@ def isolate_machine_by_hostname(
         isolation_type=isolation_type,
         dry_run=False
     )
+
+def preview_machine_isolation_by_hostname(
+    hostname: str,
+    isolation_type: str = "Selective"
+) -> dict:
+    """
+    Performs a safe isolation preview.
+
+    This function checks:
+    1. Hostname is provided.
+    2. Isolation type is valid.
+    3. Defender credentials are configured.
+    4. Machine can be found in Defender.
+
+    It does not send a real isolation command.
+    """
+
+    allowed_isolation_types = ["Full", "Selective", "UnManagedDevice"]
+
+    if not hostname:
+        return {
+            "integration": INTEGRATION_NAME,
+            "action": "machine_isolation_preview",
+            "hostname": hostname,
+            "isolation_type": isolation_type,
+            "status": "failed",
+            "ready_for_real_isolation": False,
+            "message": "Hostname is missing."
+        }
+
+    if isolation_type not in allowed_isolation_types:
+        return {
+            "integration": INTEGRATION_NAME,
+            "action": "machine_isolation_preview",
+            "hostname": hostname,
+            "isolation_type": isolation_type,
+            "status": "failed",
+            "ready_for_real_isolation": False,
+            "message": "Invalid isolation type. Allowed values are Full, Selective, and UnManagedDevice."
+        }
+
+    machine_result = find_machine_by_hostname(hostname)
+
+    if machine_result["status"] == "credentials_pending":
+        return {
+            "integration": INTEGRATION_NAME,
+            "action": "machine_isolation_preview",
+            "hostname": hostname,
+            "isolation_type": isolation_type,
+            "status": "credentials_pending",
+            "ready_for_real_isolation": False,
+            "message": "Microsoft Defender credentials are not configured.",
+            "machine": None
+        }
+
+    if machine_result["status"] != "found":
+        return {
+            "integration": INTEGRATION_NAME,
+            "action": "machine_isolation_preview",
+            "hostname": hostname,
+            "isolation_type": isolation_type,
+            "status": machine_result["status"],
+            "ready_for_real_isolation": False,
+            "message": machine_result["message"],
+            "machine": None
+        }
+
+    machine = machine_result["machine"]
+
+    machine_id = (
+        machine.get("id")
+        or machine.get("machineId")
+    )
+
+    if not machine_id:
+        return {
+            "integration": INTEGRATION_NAME,
+            "action": "machine_isolation_preview",
+            "hostname": hostname,
+            "isolation_type": isolation_type,
+            "status": "failed",
+            "ready_for_real_isolation": False,
+            "message": "Machine found, but machine ID is missing.",
+            "machine": machine
+        }
+
+    return {
+        "integration": INTEGRATION_NAME,
+        "action": "machine_isolation_preview",
+        "hostname": hostname,
+        "machine_id": machine_id,
+        "isolation_type": isolation_type,
+        "status": "preview_ready",
+        "dry_run": True,
+        "ready_for_real_isolation": True,
+        "message": "Machine lookup successful. Isolation preview completed. No real isolation command was sent.",
+        "machine": machine
+    }
