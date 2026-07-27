@@ -43,6 +43,7 @@ from app.services.validation_report import get_week1_week2_validation_report
 from app.services.production_readiness import get_production_readiness_report
 from app.services.defender_alert_ingestion import save_defender_alerts_to_db
 from app.services.edr_machine_readiness import get_machine_isolation_readiness
+from app.services.authorized_host_isolation import run_authorized_host_isolation
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -581,4 +582,28 @@ def defender_machine_isolation_readiness(
         hostname=hostname,
         approval_code=approval_code,
         isolation_type=isolation_type
+    )
+
+@app.post(
+    "/edr/defender/machines/isolate-authorized",
+    summary="Authorized Defender Host Isolation"
+)
+def authorized_defender_host_isolation(
+    hostname: str,
+    approval_code: str,
+    isolation_type: str = "Selective",
+    execute_real: bool = False
+):
+    """
+    Runs authorized Microsoft Defender host isolation.
+
+    execute_real=False is safe preview mode.
+    execute_real=True should only be used in an authorized lab tenant.
+    """
+
+    return run_authorized_host_isolation(
+        hostname=hostname,
+        approval_code=approval_code,
+        isolation_type=isolation_type,
+        execute_real=execute_real
     )
