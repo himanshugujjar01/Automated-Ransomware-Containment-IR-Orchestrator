@@ -45,6 +45,9 @@ from app.services.defender_alert_ingestion import save_defender_alerts_to_db
 from app.services.edr_machine_readiness import get_machine_isolation_readiness
 from app.services.authorized_host_isolation import run_authorized_host_isolation
 from app.services.authorized_identity_response import run_authorized_identity_response
+from app.services.forensic_tool_status import get_forensic_tools_status
+from app.services.kape_runner import run_kape_collection_authorized
+from app.services.volatility_runner import run_volatility_authorized
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -632,5 +635,62 @@ def authorized_azure_identity_response(
     return run_authorized_identity_response(
         username=username,
         approval_code=approval_code,
+        execute_real=execute_real
+    )
+
+@app.get(
+    "/forensics/tools/status",
+    summary="Forensic Tools Status"
+)
+def forensic_tools_status():
+    """
+    Shows KAPE and Volatility readiness status.
+    """
+
+    return get_forensic_tools_status()
+
+@app.post(
+    "/forensics/kape/run",
+    summary="Run KAPE Forensic Collection"
+)
+def run_kape_forensic_collection(
+    alert_id: str,
+    target_source: str = "C:",
+    module_set: str = "!BasicCollection",
+    execute_real: bool = False
+):
+    """
+    Runs or previews KAPE forensic collection.
+
+    execute_real=False is safe preview mode.
+    """
+
+    return run_kape_collection_authorized(
+        alert_id=alert_id,
+        target_source=target_source,
+        module_set=module_set,
+        execute_real=execute_real
+    )
+
+@app.post(
+    "/forensics/volatility/run",
+    summary="Run Volatility Memory Analysis"
+)
+def run_volatility_memory_analysis(
+    alert_id: str,
+    memory_dump_path: str,
+    plugin: str = "windows.info",
+    execute_real: bool = False
+):
+    """
+    Runs or previews Volatility memory analysis.
+
+    execute_real=False is safe preview mode.
+    """
+
+    return run_volatility_authorized(
+        alert_id=alert_id,
+        memory_dump_path=memory_dump_path,
+        plugin=plugin,
         execute_real=execute_real
     )

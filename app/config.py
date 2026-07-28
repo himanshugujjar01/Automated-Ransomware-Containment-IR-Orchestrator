@@ -64,3 +64,12 @@ JIRA_PROJECT_KEY = os.getenv("JIRA_PROJECT_KEY", "IR")
 NOTIFICATION_PROVIDER = os.getenv("NOTIFICATION_PROVIDER", "mock")
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "change_me")
 TEAMS_WEBHOOK_URL = os.getenv("TEAMS_WEBHOOK_URL", "change_me")
+
+# Forensic tool configuration
+KAPE_ENABLED = os.getenv("KAPE_ENABLED", "false").lower() == "true"
+KAPE_PATH = os.getenv("KAPE_PATH", "change_me")
+KAPE_OUTPUT_DIR = os.getenv("KAPE_OUTPUT_DIR", "artifacts/kape")
+
+VOLATILITY_ENABLED = os.getenv("VOLATILITY_ENABLED", "false").lower() == "true"
+VOLATILITY_PATH = os.getenv("VOLATILITY_PATH", "change_me")
+MEMORY_DUMP_DIR = os.getenv("MEMORY_DUMP_DIR", "artifacts/memory")
