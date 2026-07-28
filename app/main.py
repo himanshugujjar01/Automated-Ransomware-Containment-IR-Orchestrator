@@ -44,6 +44,7 @@ from app.services.production_readiness import get_production_readiness_report
 from app.services.defender_alert_ingestion import save_defender_alerts_to_db
 from app.services.edr_machine_readiness import get_machine_isolation_readiness
 from app.services.authorized_host_isolation import run_authorized_host_isolation
+from app.services.authorized_identity_response import run_authorized_identity_response
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -605,5 +606,31 @@ def authorized_defender_host_isolation(
         hostname=hostname,
         approval_code=approval_code,
         isolation_type=isolation_type,
+        execute_real=execute_real
+    )
+
+@app.post(
+    "/idp/azure/users/identity-response-authorized",
+    summary="Authorized Azure AD Identity Response"
+)
+def authorized_azure_identity_response(
+    username: str,
+    approval_code: str,
+    execute_real: bool = False
+):
+    """
+    Runs authorized Azure AD identity response.
+
+    Actions:
+    1. Suspend / disable user account
+    2. Revoke user sessions
+
+    execute_real=False is safe preview mode.
+    execute_real=True should only be used for an authorized dummy lab user.
+    """
+
+    return run_authorized_identity_response(
+        username=username,
+        approval_code=approval_code,
         execute_real=execute_real
     )
