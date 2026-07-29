@@ -48,6 +48,8 @@ from app.services.authorized_identity_response import run_authorized_identity_re
 from app.services.forensic_tool_status import get_forensic_tools_status
 from app.services.kape_runner import run_kape_collection_authorized
 from app.services.volatility_runner import run_volatility_authorized
+from app.integrations.aws_s3 import get_aws_s3_status
+from app.services.s3_evidence_service import upload_alert_evidence_to_s3
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -693,4 +695,41 @@ def run_volatility_memory_analysis(
         memory_dump_path=memory_dump_path,
         plugin=plugin,
         execute_real=execute_real
+    )
+
+@app.get(
+    "/integrations/aws/s3/status",
+    summary="AWS S3 Evidence Storage Status"
+)
+def aws_s3_evidence_status():
+    """
+    Shows AWS S3 evidence storage readiness status.
+    """
+
+    return get_aws_s3_status()
+
+@app.post(
+    "/evidence/{alert_id}/upload-s3",
+    summary="Upload Evidence Artifact to AWS S3"
+)
+def upload_evidence_artifact_to_s3(
+    alert_id: str,
+    file_path: str,
+    execute_real: bool = False,
+    log_to_db: bool = True,
+    db: Session = Depends(get_db)
+):
+    """
+    Uploads or previews upload of forensic evidence to AWS S3.
+
+    execute_real=False is safe preview mode.
+    execute_real=True requires USE_REAL_AWS=true and valid AWS credentials.
+    """
+
+    return upload_alert_evidence_to_s3(
+        db=db,
+        alert_id=alert_id,
+        file_path=file_path,
+        execute_real=execute_real,
+        log_to_db=log_to_db
     )

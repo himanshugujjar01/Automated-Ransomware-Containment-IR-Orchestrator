@@ -52,6 +52,9 @@ AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "change_me")
 AWS_REGION = os.getenv("AWS_REGION", "ap-south-1")
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "change_me")
 S3_EVIDENCE_PREFIX = os.getenv("S3_EVIDENCE_PREFIX", "forensic-evidence")
+S3_OBJECT_LOCK_MODE = os.getenv("S3_OBJECT_LOCK_MODE", "GOVERNANCE")
+S3_RETENTION_DAYS = int(os.getenv("S3_RETENTION_DAYS", "30"))
+S3_LEGAL_HOLD_ENABLED = os.getenv("S3_LEGAL_HOLD_ENABLED", "false").lower() == "true"
 
 # Ticketing
 TICKETING_PROVIDER = os.getenv("TICKETING_PROVIDER", "mock")
