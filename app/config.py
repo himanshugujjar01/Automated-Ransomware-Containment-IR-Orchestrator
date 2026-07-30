@@ -57,11 +57,16 @@ S3_RETENTION_DAYS = int(os.getenv("S3_RETENTION_DAYS", "30"))
 S3_LEGAL_HOLD_ENABLED = os.getenv("S3_LEGAL_HOLD_ENABLED", "false").lower() == "true"
 
 # Ticketing
+USE_REAL_TICKETING = os.getenv("USE_REAL_TICKETING", "false").lower() == "true"
 TICKETING_PROVIDER = os.getenv("TICKETING_PROVIDER", "mock")
 JIRA_BASE_URL = os.getenv("JIRA_BASE_URL", "change_me")
 JIRA_EMAIL = os.getenv("JIRA_EMAIL", "change_me")
 JIRA_API_TOKEN = os.getenv("JIRA_API_TOKEN", "change_me")
 JIRA_PROJECT_KEY = os.getenv("JIRA_PROJECT_KEY", "IR")
+SERVICENOW_INSTANCE_URL = os.getenv("SERVICENOW_INSTANCE_URL", "change_me")
+SERVICENOW_USERNAME = os.getenv("SERVICENOW_USERNAME", "change_me")
+SERVICENOW_PASSWORD = os.getenv("SERVICENOW_PASSWORD", "change_me")
+SERVICENOW_API_PATH = os.getenv("SERVICENOW_API_PATH", "/api/now/table/incident")
 
 # Notifications
 NOTIFICATION_PROVIDER = os.getenv("NOTIFICATION_PROVIDER", "mock")

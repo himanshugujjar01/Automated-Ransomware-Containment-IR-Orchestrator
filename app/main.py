@@ -36,6 +36,12 @@ from app.services.idp_response_runner import (
     run_full_approved_identity_response
 )
 
+from app.integrations.ticketing_client import get_ticketing_status
+from app.services.ticketing_service import (
+    create_ticket_for_alert,
+    get_tickets_for_alert
+)
+
 from app.services.edr_response_runner import run_approved_host_isolation
 from app.services.approved_containment_runner import run_full_approved_containment_response
 from app.services.alert_approved_playbook import run_alert_based_approved_playbook
@@ -732,4 +738,72 @@ def upload_evidence_artifact_to_s3(
         file_path=file_path,
         execute_real=execute_real,
         log_to_db=log_to_db
+    )
+
+@app.get(
+    "/integrations/ticketing/status",
+    summary="Ticketing Integration Status"
+)
+def ticketing_integration_status():
+    """
+    Shows Jira / ServiceNow ticketing readiness.
+    """
+
+    return get_ticketing_status()
+
+@app.post(
+    "/tickets/{alert_id}/create",
+    summary="Create Incident Ticket"
+)
+def create_incident_ticket_for_alert(
+    alert_id: str,
+    provider: str = "mock",
+    execute_real: bool = False,
+    log_to_db: bool = True,
+    db: Session = Depends(get_db)
+):
+    """
+    Creates an incident ticket for a saved ransomware alert.
+
+    execute_real=False creates a safe mock ticket.
+    execute_real=True requires USE_REAL_TICKETING=true and valid Jira or ServiceNow credentials.
+    """
+
+    clean_alert_id = alert_id.strip()
+
+    alert = db.query(Alert).filter(
+        Alert.alert_id == clean_alert_id
+    ).first()
+
+    if not alert:
+        raise HTTPException(
+            status_code=404,
+            detail="Alert not found"
+        )
+
+    return create_ticket_for_alert(
+        db=db,
+        alert=alert,
+        provider=provider,
+        execute_real=execute_real,
+        log_to_db=log_to_db
+    )
+
+@app.get(
+    "/tickets/{alert_id}",
+    summary="Get Tickets for Alert"
+)
+def get_incident_tickets_for_alert(
+    alert_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Shows tickets created for a specific alert.
+    """
+
+    clean_alert_id = alert_id.strip()
+
+    return get_tickets_for_alert(
+        db=db,
+        alert_id=clean_alert_id
     )
