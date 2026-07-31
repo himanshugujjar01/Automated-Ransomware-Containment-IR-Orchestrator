@@ -81,3 +81,48 @@ KAPE_OUTPUT_DIR = os.getenv("KAPE_OUTPUT_DIR", "artifacts/kape")
 VOLATILITY_ENABLED = os.getenv("VOLATILITY_ENABLED", "false").lower() == "true"
 VOLATILITY_PATH = os.getenv("VOLATILITY_PATH", "change_me")
 MEMORY_DUMP_DIR = os.getenv("MEMORY_DUMP_DIR", "artifacts/memory")
+
+# Slack Integration
+
+ENABLE_SLACK_ALERTS = (
+    os.getenv("ENABLE_SLACK_ALERTS", "false").lower() == "true"
+)
+
+USE_REAL_SLACK = (
+    os.getenv("USE_REAL_SLACK", "false").lower() == "true"
+)
+
+SLACK_WEBHOOK_URL = os.getenv(
+    "SLACK_WEBHOOK_URL",
+    "change_me"
+)
+
+SLACK_CHANNEL = os.getenv(
+    "SLACK_CHANNEL",
+    "#security-alerts"
+)
+
+SLACK_USERNAME = os.getenv(
+    "SLACK_USERNAME",
+    "Ransomware IR Bot"
+)
+
+SLACK_ICON = os.getenv(
+    "SLACK_ICON",
+    ":rotating_light:"
+)
+
+# Microsoft Teams Integration
+
+ENABLE_TEAMS_ALERTS = (
+    os.getenv("ENABLE_TEAMS_ALERTS", "false").lower() == "true"
+)
+
+USE_REAL_TEAMS = (
+    os.getenv("USE_REAL_TEAMS", "false").lower() == "true"
+)
+
+TEAMS_WEBHOOK_URL = os.getenv(
+    "TEAMS_WEBHOOK_URL",
+    "change_me"
+)

@@ -56,6 +56,23 @@ from app.services.kape_runner import run_kape_collection_authorized
 from app.services.volatility_runner import run_volatility_authorized
 from app.integrations.aws_s3 import get_aws_s3_status
 from app.services.s3_evidence_service import upload_alert_evidence_to_s3
+from app.integrations.slack_client import get_slack_status
+from app.integrations.teams_client import get_teams_status
+
+from app.services.notification_service import (
+    notification_status
+)
+
+from app.services.ransomware_simulator import (
+    simulator_status
+)
+
+from app.services.dashboard_service import (
+    build_executive_dashboard,
+    build_incident_timeline,
+)
+
+from app.services.security_metrics import build_security_metrics
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -807,3 +824,47 @@ def get_incident_tickets_for_alert(
         db=db,
         alert_id=clean_alert_id
     )
+
+@app.get(
+    "/integrations/slack/status",
+    summary="Slack Integration Status"
+)
+def slack_status():
+
+    return get_slack_status()
+
+@app.get(
+    "/integrations/teams/status",
+    summary="Microsoft Teams Status"
+)
+def teams_status():
+
+    return get_teams_status()
+
+@app.get(
+    "/notifications/status",
+    summary="Notification Service Status"
+)
+def notification_service_status():
+
+    return notification_status()
+
+@app.get(
+    "/simulation/status",
+    summary="Simulation Service Status"
+)
+def simulation_status():
+
+    return simulator_status()
+
+@app.get("/dashboard/timeline/{alert_id}")
+def dashboard_timeline(alert_id: str):
+    """
+    Incident Timeline
+    """
+    return build_incident_timeline(alert_id)
+
+@app.get("/dashboard/security-metrics")
+def security_metrics():
+
+    return build_security_metrics()
