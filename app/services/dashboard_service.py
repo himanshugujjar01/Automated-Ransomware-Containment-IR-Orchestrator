@@ -83,3 +83,47 @@ def build_incident_timeline(alert_id: str):
             }
         ]
     }
+
+from datetime import datetime
+
+
+def build_dashboard_timeline(alert_id=None):
+    """
+    Build a chronological incident response timeline
+    for the Executive Dashboard.
+    """
+
+    return {
+        "timeline": [
+            {
+                "time": datetime.now().isoformat(),
+                "event": "Alert Received",
+                "status": "completed"
+            },
+            {
+                "time": datetime.now().isoformat(),
+                "event": "Host Isolated",
+                "status": "completed"
+            },
+            {
+                "time": datetime.now().isoformat(),
+                "event": "Evidence Uploaded",
+                "status": "completed"
+            },
+            {
+                "time": datetime.now().isoformat(),
+                "event": "Ticket Created",
+                "status": "completed"
+            },
+            {
+                "time": datetime.now().isoformat(),
+                "event": "Forensics Started",
+                "status": "completed"
+            },
+            {
+                "time": datetime.now().isoformat(),
+                "event": "Investigation Complete",
+                "status": "completed"
+            }
+        ]
+    }

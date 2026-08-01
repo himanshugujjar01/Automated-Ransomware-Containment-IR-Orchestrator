@@ -1,6 +1,6 @@
 import random
 import secrets
-from datetime import datetime
+from datetime import datetime, UTC
 
 
 def random_hash():
@@ -52,22 +52,14 @@ def generate_fake_alert(hostname, username, severity):
         "process_hash": random_hash(),
         "description": random_note(),
         "detection_type": "Simulated Ransomware",
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": "datetime.now(UTC).isoformat()"
     }
 
-
-# -------------------------------
 # Simulation Status
-# -------------------------------
 
 def simulator_status():
-
     return {
-        "service": "Ransomware Simulator",
         "status": "ready",
-        "supported_modes": [
-            "dry_run",
-            "demo"
-        ],
+        "engine": "lab",
         "version": "1.0"
     }

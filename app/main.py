@@ -73,6 +73,8 @@ from app.services.dashboard_service import (
 )
 
 from app.services.security_metrics import build_security_metrics
+from app.services.incident_summary import build_incident_summary
+from app.services.executive_dashboard import build_executive_dashboard
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -868,3 +870,13 @@ def dashboard_timeline(alert_id: str):
 def security_metrics():
 
     return build_security_metrics()
+
+@app.get("/incident-summary/{alert_id}")
+def incident_summary(alert_id: str):
+
+    return build_incident_summary(alert_id)
+
+@app.get("/dashboard/executive")
+def executive_dashboard():
+
+    return build_executive_dashboard()
