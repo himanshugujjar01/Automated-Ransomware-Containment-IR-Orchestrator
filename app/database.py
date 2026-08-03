@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.config import DATABASE_URL
@@ -14,6 +16,17 @@ SessionLocal = sessionmaker(
 )
 
 Base = declarative_base()
+
+
+def utcnow() -> datetime:
+    """
+    Timezone-aware replacement for the deprecated datetime.utcnow().
+    Returns a naive UTC datetime so existing DateTime columns and
+    comparisons across the codebase keep working unchanged.
+    """
+
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
 
 def get_db():
     db = SessionLocal()

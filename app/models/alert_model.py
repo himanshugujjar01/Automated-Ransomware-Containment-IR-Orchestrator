@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text
-from datetime import datetime
-from app.database import Base
+from app.database import Base, utcnow
 
 class Alert(Base):
     __tablename__ = "alerts"
@@ -17,4 +16,4 @@ class Alert(Base):
     description = Column(Text)
     status = Column(String, default="received")
     raw_payload = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)

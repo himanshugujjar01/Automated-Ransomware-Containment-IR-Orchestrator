@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text
-from datetime import datetime
-from app.database import Base
+from app.database import Base, utcnow
 
 class Ticket(Base):
     __tablename__ = "tickets"
@@ -12,4 +11,4 @@ class Ticket(Base):
     assigned_team = Column(String)
     status = Column(String)
     summary = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)

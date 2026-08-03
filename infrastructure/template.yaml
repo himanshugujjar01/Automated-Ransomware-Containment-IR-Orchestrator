@@ -1,0 +1,183 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Automated Ransomware Containment & IR Orchestrator (Project 3) -
+  serverless deployment: FastAPI service on Lambda + API Gateway,
+  and a Step Functions state machine that runs the containment playbook
+  as individual, independently-scalable Lambda functions.
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 30
+    MemorySize: 256
+    Environment:
+      Variables:
+        DATABASE_URL: !Ref DatabaseUrl
+        USE_REAL_EDR: !Ref UseRealEdr
+        USE_REAL_IDP: !Ref UseRealIdp
+        USE_REAL_AWS: !Ref UseRealAws
+        USE_REAL_TICKETING: !Ref UseRealTicketing
+        USE_REAL_NOTIFICATIONS: !Ref UseRealNotifications
+        REQUIRE_MANUAL_APPROVAL: !Ref RequireManualApproval
+
+Parameters:
+  DatabaseUrl:
+    Type: String
+    Default: sqlite:///./ir_orchestrator.db
+    Description: Use a Postgres/Aurora connection string in production; SQLite does not support concurrent Lambda invocations.
+  UseRealEdr:
+    Type: String
+    Default: "false"
+  UseRealIdp:
+    Type: String
+    Default: "false"
+  UseRealAws:
+    Type: String
+    Default: "false"
+  UseRealTicketing:
+    Type: String
+    Default: "false"
+  UseRealNotifications:
+    Type: String
+    Default: "false"
+  RequireManualApproval:
+    Type: String
+    Default: "true"
+  EvidenceBucketName:
+    Type: String
+    Description: Name of the hardened WORM S3 bucket used for forensic evidence storage.
+
+Resources:
+
+  # ---------------------------------------------------------------------
+  # FastAPI orchestrator, served via API Gateway (Swagger UI, dashboards,
+  # ticketing/forensics endpoints, /simulation/tabletop-exercise, etc.)
+  # ---------------------------------------------------------------------
+  OrchestratorApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../
+      Handler: app.lambda_app.handler
+      Events:
+        AnyApiRequest:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+
+  # ---------------------------------------------------------------------
+  # Individual playbook-step Lambda functions, invoked by Step Functions
+  # ---------------------------------------------------------------------
+  ParseAlertFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../
+      Handler: app.lambda_handlers.parse_alert_handler.lambda_handler
+
+  HostIsolationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../
+      Handler: app.lambda_handlers.host_isolation_handler.lambda_handler
+
+  IdentityResponseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../
+      Handler: app.lambda_handlers.identity_response_handler.lambda_handler
+
+  MergeContainmentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../
+      Handler: app.lambda_handlers.merge_containment_handler.lambda_handler
+
+  ForensicCollectionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../
+      Handler: app.lambda_handlers.forensic_collection_handler.lambda_handler
+
+  ChainOfCustodyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../
+      Handler: app.lambda_handlers.chain_of_custody_handler.lambda_handler
+
+  EvidenceUploadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../
+      Handler: app.lambda_handlers.evidence_upload_handler.lambda_handler
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref EvidenceBucketName
+
+  TicketingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../
+      Handler: app.lambda_handlers.ticketing_handler.lambda_handler
+
+  NotificationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../
+      Handler: app.lambda_handlers.notification_handler.lambda_handler
+
+  ResponseTimeReportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../
+      Handler: app.lambda_handlers.response_time_report_handler.lambda_handler
+
+  # ---------------------------------------------------------------------
+  # Step Functions state machine tying the above Lambda functions together
+  # into the Week 1-4 containment playbook. Triggered by the EDR webhook
+  # arriving on EventBridge (or directly via StartExecution from API Gateway).
+  # ---------------------------------------------------------------------
+  RansomwareContainmentStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: step_functions/ransomware_containment_state_machine.json
+      DefinitionSubstitutions:
+        ParseAlertFunctionArn: !GetAtt ParseAlertFunction.Arn
+        HostIsolationFunctionArn: !GetAtt HostIsolationFunction.Arn
+        IdentityResponseFunctionArn: !GetAtt IdentityResponseFunction.Arn
+        MergeContainmentFunctionArn: !GetAtt MergeContainmentFunction.Arn
+        ForensicCollectionFunctionArn: !GetAtt ForensicCollectionFunction.Arn
+        ChainOfCustodyFunctionArn: !GetAtt ChainOfCustodyFunction.Arn
+        EvidenceUploadFunctionArn: !GetAtt EvidenceUploadFunction.Arn
+        TicketingFunctionArn: !GetAtt TicketingFunction.Arn
+        NotificationFunctionArn: !GetAtt NotificationFunction.Arn
+        ResponseTimeReportFunctionArn: !GetAtt ResponseTimeReportFunction.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ParseAlertFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref HostIsolationFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref IdentityResponseFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref MergeContainmentFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ForensicCollectionFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ChainOfCustodyFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref EvidenceUploadFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref TicketingFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref NotificationFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ResponseTimeReportFunction
+
+Outputs:
+  ApiUrl:
+    Description: FastAPI orchestrator base URL
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+  StateMachineArn:
+    Description: Ransomware containment Step Functions state machine ARN
+    Value: !Ref RansomwareContainmentStateMachine

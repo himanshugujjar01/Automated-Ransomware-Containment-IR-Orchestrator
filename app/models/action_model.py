@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text
-from datetime import datetime
-from app.database import Base
+from app.database import Base, utcnow
 
 class ActionLog(Base):
     __tablename__ = "action_logs"
@@ -11,5 +10,5 @@ class ActionLog(Base):
     target = Column(String)
     status = Column(String)
     details = Column(Text)
-    started_at = Column(DateTime, default=datetime.utcnow)
-    completed_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, default=utcnow)
+    completed_at = Column(DateTime, default=utcnow)

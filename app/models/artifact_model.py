@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime
-from datetime import datetime
-from app.database import Base
+from app.database import Base, utcnow
 
 class Artifact(Base):
     __tablename__ = "artifacts"
@@ -11,4 +10,4 @@ class Artifact(Base):
     file_path = Column(String)
     sha256_hash = Column(String)
     storage_path = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)

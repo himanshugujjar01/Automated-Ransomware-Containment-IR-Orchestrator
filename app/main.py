@@ -76,6 +76,12 @@ from app.services.security_metrics import build_security_metrics
 from app.services.incident_summary import build_incident_summary
 from app.services.executive_dashboard import build_executive_dashboard
 
+from app.services.response_time_tracker import (
+    get_response_time_report,
+    get_fleet_response_time_summary
+)
+from app.services.tabletop_exercise import run_tabletop_exercise
+
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
@@ -880,3 +886,53 @@ def incident_summary(alert_id: str):
 def executive_dashboard():
 
     return build_executive_dashboard()
+
+@app.get(
+    "/response-time/{alert_id}",
+    summary="Incident Response Time Report"
+)
+def response_time_report(alert_id: str, db: Session = Depends(get_db)):
+    """
+    Shows a stage-by-stage response time breakdown for a single incident:
+    detection -> first action -> full containment -> evidence collected -> ticket filed.
+    """
+
+    return get_response_time_report(db, alert_id.strip())
+
+@app.get(
+    "/response-time/fleet/summary",
+    summary="Fleet-wide Response Time Summary"
+)
+def fleet_response_time_summary(limit: int = 50, db: Session = Depends(get_db)):
+    """
+    Aggregates response-time stats (average / fastest / slowest) across the
+    most recent incidents, for SLA tracking over time.
+    """
+
+    return get_fleet_response_time_summary(db, limit=limit)
+
+@app.post(
+    "/simulation/tabletop-exercise",
+    summary="Run Ransomware Table-top Exercise"
+)
+def simulation_tabletop_exercise(
+    hostname: str = "SIM-WORKSTATION-01",
+    username: str = "sim.user",
+    severity: str = "high",
+    db: Session = Depends(get_db)
+):
+    """
+    Runs a full, self-contained simulated ransomware incident end-to-end
+    (alert ingestion -> containment -> forensics -> ticketing) and reports
+    exactly how fast the orchestrator responded at each stage.
+
+    Safe to run repeatedly. Never touches real EDR, IdP, AWS, or ticketing
+    systems unless USE_REAL_* flags are explicitly enabled in config.
+    """
+
+    return run_tabletop_exercise(
+        db=db,
+        hostname=hostname,
+        username=username,
+        severity=severity
+    )
