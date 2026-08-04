@@ -14,7 +14,6 @@ This project works as an automated incident-response layer between an EDR alert 
 **Student Name:** Himanshu
 **Course / Branch:** B.Tech. CSE (Cyber Security)
 **Internship Company:** Zaalima Development Pvt. Ltd.
-**Project Number:** Project 3 of 4 (production-level cybersecurity project series)
 **Repository:** <https://github.com/himanshugujjar01/Automated-Ransomware-Containment-IR-Orchestrator.git>
 **Branch:** main
 
