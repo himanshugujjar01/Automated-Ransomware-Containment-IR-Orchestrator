@@ -1,6 +1,10 @@
 import json
+import os
 
 from fastapi import FastAPI, Depends, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.config import APP_NAME, APP_ENV, WEBHOOK_SECRET
@@ -81,6 +85,7 @@ from app.services.response_time_tracker import (
     get_fleet_response_time_summary
 )
 from app.services.tabletop_exercise import run_tabletop_exercise
+from app.integrations import falcon_edr
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -93,13 +98,34 @@ app = FastAPI(
 )
 
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+_FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+if os.path.isdir(_FRONTEND_DIR):
+    app.mount("/static", StaticFiles(directory=_FRONTEND_DIR), name="static")
+
+
 @app.get("/")
 def root():
     return {
         "message": f"{APP_NAME} is running",
-        "environment": APP_ENV
+        "environment": APP_ENV,
+        "dashboard": "/dashboard" if os.path.isdir(_FRONTEND_DIR) else None
     }
 
+
+@app.get("/dashboard")
+def serve_dashboard():
+    index_path = os.path.join(_FRONTEND_DIR, "index.html")
+    if os.path.isfile(index_path):
+        return FileResponse(index_path)
+    raise HTTPException(status_code=404, detail="Dashboard not found")
 
 @app.get("/health")
 def health_check():
@@ -316,6 +342,15 @@ def defender_integration_status():
     """
 
     return get_defender_status()
+
+@app.get("/integrations/falcon/status")
+def falcon_status():
+    return falcon_edr.get_falcon_status()
+
+
+@app.post("/edr/falcon/hosts/contain-preview")
+def falcon_contain_preview(hostname: str):
+    return falcon_edr.preview_host_containment_by_hostname(hostname)
 
 @app.get(
     "/edr/defender/alerts",
@@ -936,3 +971,14 @@ def simulation_tabletop_exercise(
         username=username,
         severity=severity
     )
+
+
+# ---------------------------------------------------------------------------
+# Frontend: SOC analyst console (static single-page app)
+# Served from the same origin as the API, so no CORS configuration is
+# needed - open http://<host>/console/ once the server is running.
+# ---------------------------------------------------------------------------
+_FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+
+if os.path.isdir(_FRONTEND_DIR):
+    app.mount("/console", StaticFiles(directory=_FRONTEND_DIR, html=True), name="console")

@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORC-3 // Ransomware Containment Ops Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0A0D13;
+  --bg-raised:#0E121B;
+  --panel:#121826;
+  --panel-alt:#161D2E;
+  --line:#232C41;
+  --line-soft:#1A2233;
+  --text:#E7EAF2;
+  --text-dim:#8A93AC;
+  --text-faint:#4E5772;
+  --amber:#FFB020;
+  --amber-dim:#5A4420;
+  --red:#FF4D5E;
+  --red-dim:#4A1B22;
+  --green:#29D67A;
+  --green-dim:#123625;
+  --blue:#5B8CFF;
+  --blue-dim:#182640;
+  --purple:#B18CFF;
+  --radius:3px;
+  --mono:'JetBrains Mono',monospace;
+  --display:'Space Grotesk',sans-serif;
+  --body:'Inter',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  background:
+    radial-gradient(ellipse 900px 500px at 15% -10%, rgba(91,140,255,0.07), transparent),
+    radial-gradient(ellipse 700px 500px at 100% 10%, rgba(255,176,32,0.04), transparent),
+    var(--bg);
+  color:var(--text);
+  font-family:var(--body);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--blue-dim);color:var(--text);}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:5px;}
+::-webkit-scrollbar-thumb:hover{background:var(--text-faint);}
+
+a{color:inherit;}
+button{font-family:var(--body);cursor:pointer;}
+input,select{font-family:var(--mono);}
+
+.app{display:flex;min-height:100vh;}
+
+/* ===== Sidebar ===== */
+.sidebar{
+  width:230px;flex:none;
+  background:var(--bg-raised);
+  border-right:1px solid var(--line-soft);
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;
+}
+.brand{
+  padding:20px 18px 16px;
+  border-bottom:1px solid var(--line-soft);
+}
+.brand-mark{
+  display:flex;align-items:center;gap:9px;margin-bottom:10px;
+}
+.brand-glyph{
+  width:26px;height:26px;flex:none;position:relative;
+}
+.brand-glyph svg{width:100%;height:100%;}
+.brand-name{
+  font-family:var(--display);font-weight:700;font-size:15.5px;letter-spacing:0.2px;
+}
+.brand-sub{
+  font-family:var(--mono);font-size:9.5px;color:var(--text-faint);
+  text-transform:uppercase;letter-spacing:1.4px;
+}
+.case-id{
+  font-family:var(--mono);font-size:10px;color:var(--text-dim);
+  background:var(--panel);border:1px solid var(--line);
+  padding:4px 8px;border-radius:var(--radius);
+  display:inline-block;
+}
+
+.navlist{list-style:none;padding:14px 10px;flex:1;overflow-y:auto;}
+.navlist li{margin-bottom:2px;}
+.navlink{
+  display:flex;align-items:center;gap:10px;
+  width:100%;text-align:left;background:none;border:none;
+  color:var(--text-dim);padding:9px 10px;border-radius:var(--radius);
+  font-size:12.5px;font-weight:500;letter-spacing:0.15px;
+  transition:background .12s, color .12s;
+}
+.navlink .tag{
+  font-family:var(--mono);font-size:9.5px;color:var(--text-faint);width:20px;flex:none;
+}
+.navlink:hover{background:var(--panel);color:var(--text);}
+.navlink.active{background:var(--panel-alt);color:var(--text);box-shadow:inset 2px 0 0 var(--blue);}
+.navlink.active .tag{color:var(--blue);}
+
+.sidebar-foot{
+  padding:14px 18px 18px;border-top:1px solid var(--line-soft);
+  font-family:var(--mono);font-size:10px;color:var(--text-faint);
+}
+.sidebar-foot .row{display:flex;justify-content:space-between;margin-bottom:4px;}
+
+/* ===== Main ===== */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+
+.topbar{
+  position:sticky;top:0;z-index:20;
+  background:rgba(10,13,19,0.88);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line-soft);
+  padding:12px 26px;
+  display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+}
+.topbar-title{flex:1;min-width:180px;}
+.topbar-title h1{font-family:var(--display);font-size:16px;font-weight:600;}
+.topbar-title p{font-size:11px;color:var(--text-faint);font-family:var(--mono);margin-top:1px;}
+
+.conn-group{display:flex;align-items:center;gap:8px;}
+.conn-dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--text-faint);}
+.conn-dot.live{background:var(--green);box-shadow:0 0 0 3px var(--green-dim);animation:pulse 2s infinite;}
+.conn-dot.down{background:var(--red);box-shadow:0 0 0 3px var(--red-dim);}
+.conn-dot.demo{background:var(--amber);box-shadow:0 0 0 3px var(--amber-dim);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.45;}}
+.conn-label{font-family:var(--mono);font-size:10.5px;color:var(--text-dim);white-space:nowrap;}
+
+.api-input{
+  background:var(--panel);border:1px solid var(--line);color:var(--text);
+  padding:7px 10px;border-radius:var(--radius);font-size:11px;width:210px;
+  outline:none;
+}
+.api-input:focus{border-color:var(--blue);}
+.btn{
+  font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.3px;
+  padding:7px 13px;border-radius:var(--radius);border:1px solid var(--line);
+  background:var(--panel);color:var(--text);white-space:nowrap;
+  transition:border-color .12s, background .12s;
+}
+.btn:hover{border-color:var(--text-dim);}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#0A0D13;font-weight:600;}
+.btn.primary:hover{background:#719aff;}
+.btn.danger{background:var(--red);border-color:var(--red);color:#1a0508;font-weight:600;}
+.btn.danger:hover{background:#ff6b78;}
+.btn.ghost{background:transparent;}
+.btn.small{padding:5px 10px;font-size:10px;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+
+.threat-meter{display:flex;align-items:center;gap:8px;}
+.threat-ring{width:34px;height:34px;position:relative;}
+.threat-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+.threat-ring-track{fill:none;stroke:var(--line);stroke-width:4;}
+.threat-ring-val{fill:none;stroke:var(--amber);stroke-width:4;stroke-linecap:round;transition:stroke-dashoffset .6s ease;}
+.threat-label{font-family:var(--mono);}
+.threat-label .n{font-size:13px;font-weight:700;color:var(--text);}
+.threat-label .l{font-size:8.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px;}
+
+.demo-banner{
+  background:linear-gradient(90deg, var(--amber-dim), transparent 70%);
+  border-bottom:1px solid var(--line-soft);
+  padding:8px 26px;font-family:var(--mono);font-size:11px;color:#FFC862;
+  display:none;align-items:center;gap:8px;
+}
+.demo-banner.show{display:flex;}
+.demo-banner b{color:var(--amber);}
+
+.content{padding:22px 26px 60px;flex:1;}
+.view{display:none;animation:fadein .25s ease;}
+.view.active{display:block;}
+@keyframes fadein{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+.view-head{margin-bottom:18px;}
+.view-eyebrow{
+  font-family:var(--mono);font-size:10px;color:var(--text-faint);
+  text-transform:uppercase;letter-spacing:1.6px;margin-bottom:5px;
+}
+.view-title{font-family:var(--display);font-size:22px;font-weight:600;}
+.view-desc{font-size:12.5px;color:var(--text-dim);margin-top:5px;max-width:640px;}
+
+/* ===== Panels (case-file cards w/ corner brackets) ===== */
+.panel{
+  position:relative;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);padding:18px;
+}
+.panel::before,.panel::after,.panel .bl,.panel .br{content:"";position:absolute;width:9px;height:9px;pointer-events:none;}
+.panel::before{top:-1px;left:-1px;border-top:2px solid var(--blue);border-left:2px solid var(--blue);opacity:.7;}
+.panel::after{top:-1px;right:-1px;border-top:2px solid var(--blue);border-right:2px solid var(--blue);opacity:.7;}
+.panel .bl{bottom:-1px;left:-1px;border-bottom:2px solid var(--blue);border-left:2px solid var(--blue);opacity:.7;}
+.panel .br{bottom:-1px;right:-1px;border-bottom:2px solid var(--blue);border-right:2px solid var(--blue);opacity:.7;}
+.panel.warn::before,.panel.warn::after,.panel.warn .bl,.panel.warn .br{border-color:var(--amber);}
+.panel.crit::before,.panel.crit::after,.panel.crit .bl,.panel.crit .br{border-color:var(--red);}
+.panel.ok::before,.panel.ok::after,.panel.ok .bl,.panel.ok .br{border-color:var(--green);}
+
+.panel-title{
+  font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:1.4px;
+  color:var(--text-dim);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;
+}
+
+.grid{display:grid;gap:14px;}
+.grid.cols-4{grid-template-columns:repeat(4,1fr);}
+.grid.cols-3{grid-template-columns:repeat(3,1fr);}
+.grid.cols-2{grid-template-columns:repeat(2,1fr);}
+@media(max-width:1000px){.grid.cols-4{grid-template-columns:repeat(2,1fr);}.grid.cols-3{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:640px){.grid.cols-4,.grid.cols-3,.grid.cols-2{grid-template-columns:1fr;}}
+
+.stat-panel .num{font-family:var(--display);font-size:30px;font-weight:700;line-height:1;}
+.stat-panel .num.amber{color:var(--amber);}
+.stat-panel .num.red{color:var(--red);}
+.stat-panel .num.green{color:var(--green);}
+.stat-panel .num.blue{color:var(--blue);}
+.stat-panel .sub{font-size:11px;color:var(--text-dim);margin-top:6px;}
+
+.section-gap{margin-top:20px;}
+
+/* table */
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th{
+  text-align:left;font-family:var(--mono);font-size:9.5px;text-transform:uppercase;
+  letter-spacing:1px;color:var(--text-faint);padding:0 10px 10px;border-bottom:1px solid var(--line);
+  font-weight:500;
+}
+td{padding:11px 10px;border-bottom:1px solid var(--line-soft);vertical-align:middle;}
+tr.rowlink{cursor:pointer;transition:background .1s;}
+tr.rowlink:hover td{background:var(--panel-alt);}
+.mono{font-family:var(--mono);}
+.dim{color:var(--text-dim);}
+.faint{color:var(--text-faint);}
+
+.badge{
+  display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  padding:3px 8px;border-radius:20px;border:1px solid var(--line);text-transform:uppercase;letter-spacing:.5px;
+}
+.badge .dot{width:5px;height:5px;border-radius:50%;}
+.badge.sev-critical{color:var(--red);border-color:var(--red-dim);background:var(--red-dim);}
+.badge.sev-critical .dot{background:var(--red);}
+.badge.sev-high{color:var(--amber);border-color:var(--amber-dim);background:var(--amber-dim);}
+.badge.sev-high .dot{background:var(--amber);}
+.badge.sev-medium{color:var(--blue);border-color:var(--blue-dim);background:var(--blue-dim);}
+.badge.sev-medium .dot{background:var(--blue);}
+.badge.sev-low{color:var(--text-dim);}
+.badge.sev-low .dot{background:var(--text-dim);}
+.badge.status-contained,.badge.status-done,.badge.status-success{color:var(--green);border-color:var(--green-dim);background:var(--green-dim);}
+.badge.status-contained .dot,.badge.status-done .dot,.badge.status-success .dot{background:var(--green);}
+.badge.status-received,.badge.status-pending{color:var(--text-dim);}
+.badge.status-received .dot,.badge.status-pending .dot{background:var(--text-dim);}
+
+.empty{
+  text-align:center;padding:46px 20px;color:var(--text-faint);font-size:12.5px;
+}
+.empty .glyph{font-size:26px;margin-bottom:10px;opacity:.5;}
+
+/* forms */
+.field{margin-bottom:12px;}
+.field label{
+  display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;
+  letter-spacing:1px;color:var(--text-faint);margin-bottom:6px;
+}
+.field input, .field select{
+  width:100%;background:var(--bg-raised);border:1px solid var(--line);color:var(--text);
+  padding:8px 10px;border-radius:var(--radius);font-size:12px;outline:none;
+}
+.field input:focus, .field select:focus{border-color:var(--blue);}
+.field-row{display:flex;gap:12px;}
+.field-row .field{flex:1;}
+.check-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:12px;color:var(--text-dim);}
+.check-row input{width:14px;height:14px;}
+
+.action-result{
+  margin-top:12px;background:var(--bg-raised);border:1px solid var(--line);border-radius:var(--radius);
+  padding:12px;font-family:var(--mono);font-size:11px;color:var(--text-dim);
+  max-height:260px;overflow:auto;white-space:pre-wrap;word-break:break-word;
+}
+.action-result.pending{color:var(--text-faint);}
+
+.two-col{display:grid;grid-template-columns:1.15fr 0.85fr;gap:16px;}
+@media(max-width:900px){.two-col{grid-template-columns:1fr;}}
+
+.timeline{list-style:none;}
+.timeline li{
+  display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line-soft);
+}
+.timeline li:last-child{border-bottom:none;}
+.timeline .t-dot{width:8px;height:8px;border-radius:50%;background:var(--blue);margin-top:5px;flex:none;}
+.timeline .t-body{flex:1;}
+.timeline .t-head{display:flex;justify-content:space-between;font-size:12.5px;font-weight:500;}
+.timeline .t-time{font-family:var(--mono);font-size:10px;color:var(--text-faint);}
+.timeline .t-detail{font-size:11.5px;color:var(--text-dim);margin-top:2px;}
+
+.checklist{list-style:none;}
+.checklist li{
+  display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line-soft);font-size:12.5px;
+}
+.checklist li:last-child{border-bottom:none;}
+.checklist .cbox{width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex:none;font-size:10px;}
+.checklist .cbox.yes{background:var(--green-dim);color:var(--green);border:1px solid var(--green);}
+.checklist .cbox.no{background:var(--panel-alt);color:var(--text-faint);border:1px solid var(--line);}
+
+/* gauge for response time bars */
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+.bar-row .lbl{width:190px;flex:none;font-size:11.5px;color:var(--text-dim);}
+.bar-track{flex:1;height:7px;background:var(--bg-raised);border-radius:5px;overflow:hidden;border:1px solid var(--line-soft);}
+.bar-fill{height:100%;background:linear-gradient(90deg, var(--blue), var(--purple));border-radius:5px;transition:width .5s ease;}
+.bar-row .val{width:64px;flex:none;text-align:right;font-family:var(--mono);font-size:11px;color:var(--text);}
+
+.stopwatch{
+  font-family:var(--display);font-weight:700;font-size:42px;color:var(--green);
+  text-shadow:0 0 22px rgba(41,214,122,0.35);
+}
+
+/* Custody ledger strip (signature element) */
+.ledger{
+  position:sticky;bottom:0;z-index:15;
+  background:rgba(14,18,27,0.94);backdrop-filter:blur(10px);
+  border-top:1px solid var(--line-soft);
+  padding:9px 26px;display:flex;align-items:center;gap:10px;overflow:hidden;
+}
+.ledger-label{
+  font-family:var(--mono);font-size:9.5px;color:var(--text-faint);text-transform:uppercase;
+  letter-spacing:1.4px;flex:none;display:flex;align-items:center;gap:6px;
+}
+.ledger-label .lg-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+.ledger-track{flex:1;display:flex;gap:0;overflow:hidden;white-space:nowrap;position:relative;mask-image:linear-gradient(90deg, transparent, black 26px, black calc(100% - 26px), transparent);}
+.ledger-scroll{display:flex;gap:0;animation:ledger-scroll 32s linear infinite;}
+.ledger-track:hover .ledger-scroll{animation-play-state:paused;}
+@keyframes ledger-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+.ledger-item{
+  font-family:var(--mono);font-size:10.5px;color:var(--text-dim);white-space:nowrap;
+  padding:0 16px;border-right:1px solid var(--line-soft);display:flex;align-items:center;gap:7px;
+}
+.ledger-item .hash{color:var(--blue);}
+.ledger-item .ok{color:var(--green);}
+
+.hint{font-size:11px;color:var(--text-faint);margin-top:8px;}
+.kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:12px;}
+.kv:last-child{border-bottom:none;}
+.kv .k{color:var(--text-faint);font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;}
+.kv .v{font-family:var(--mono);color:var(--text);}
+
+.detail-drawer{display:none;margin-top:16px;}
+.detail-drawer.show{display:block;}
+.close-drawer{float:right;}
+
+@media(max-width:860px){
+  .sidebar{position:fixed;left:-230px;transition:left .2s;z-index:40;}
+  .sidebar.open{left:0;}
+  .topbar{padding:10px 14px;}
+  .content{padding:16px 14px 60px;}
+  .ledger{padding:9px 14px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <div class="brand-glyph">
+          <svg viewBox="0 0 26 26" fill="none">
+            <rect x="1" y="1" width="24" height="24" rx="3" stroke="#5B8CFF" stroke-width="1.4"/>
+            <path d="M13 5.5L20 9V14C20 18 17 20.5 13 21.5C9 20.5 6 18 6 14V9L13 5.5Z" stroke="#FFB020" stroke-width="1.4" stroke-linejoin="round"/>
+            <path d="M10 13L12.2 15.2L16.5 10.5" stroke="#29D67A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-name">ORC-3 CONSOLE</div>
+          <div class="brand-sub">Ransomware IR Orchestrator</div>
+        </div>
+      </div>
+      <div class="case-id" id="caseIdLabel">CASE — SANDBOX-LAB</div>
+    </div>
+
+    <ul class="navlist" id="navlist">
+      <li><button class="navlink active" data-view="overview"><span class="tag">01</span>Overview</button></li>
+      <li><button class="navlink" data-view="alerts"><span class="tag">02</span>Alerts</button></li>
+      <li><button class="navlink" data-view="containment"><span class="tag">03</span>Containment</button></li>
+      <li><button class="navlink" data-view="forensics"><span class="tag">04</span>Forensics &amp; Evidence</button></li>
+      <li><button class="navlink" data-view="tickets"><span class="tag">05</span>Tickets</button></li>
+      <li><button class="navlink" data-view="response"><span class="tag">06</span>Response Time</button></li>
+      <li><button class="navlink" data-view="simulation"><span class="tag">07</span>Tabletop Simulation</button></li>
+      <li><button class="navlink" data-view="safety"><span class="tag">08</span>Safety &amp; Readiness</button></li>
+    </ul>
+
+    <div class="sidebar-foot">
+      <div class="row"><span>SOAR ENGINE</span><span id="footEnv">local</span></div>
+      <div class="row"><span>SAFETY MODE</span><span id="footSafety">—</span></div>
+      <div class="row"><span>BUILD</span><span>v1.0.0</span></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="btn ghost small" id="navToggle" style="display:none;">☰</button>
+      <div class="topbar-title">
+        <h1 id="topTitle">Overview</h1>
+        <p id="topSub">Detection → containment → forensics → ticketing, in one pane</p>
+      </div>
+
+      <div class="threat-meter" title="Share of open/critical alerts">
+        <div class="threat-ring">
+          <svg viewBox="0 0 36 36">
+            <circle class="threat-ring-track" cx="18" cy="18" r="15"></circle>
+            <circle class="threat-ring-val" id="threatRingVal" cx="18" cy="18" r="15" stroke-dasharray="94.2" stroke-dashoffset="94.2"></circle>
+          </svg>
+        </div>
+        <div class="threat-label"><div class="n" id="threatNum">0%</div><div class="l">Threat</div></div>
+      </div>
+
+      <div class="conn-group">
+        <span class="conn-dot down" id="connDot"></span>
+        <span class="conn-label" id="connLabel">not connected</span>
+      </div>
+      <input class="api-input" id="apiBase" value="http://127.0.0.1:8000" spellcheck="false">
+      <button class="btn" id="connectBtn">Connect</button>
+      <button class="btn ghost" id="demoBtn">Load demo data</button>
+    </div>
+
+    <div class="demo-banner" id="demoBanner">
+      <span>⬤</span>
+      <span><b>Demo data mode.</b> No live API reachable at the address above — showing sample data so you can preview every view. Start the backend (<code>uvicorn app.main:app --reload</code>) and hit Connect to go live.</span>
+    </div>
+
+    <div class="content">
+
+      <!-- OVERVIEW -->
+      <section class="view active" id="view-overview">
+        <div class="view-head">
+          <div class="view-eyebrow">Executive Dashboard</div>
+          <div class="view-title">Fleet security posture</div>
+          <div class="view-desc">Live pull from <span class="mono">/dashboard/executive</span> and <span class="mono">/dashboard/security-metrics</span> — how many incidents came in, how they were handled, and how fast.</div>
+        </div>
+
+        <div class="grid cols-4" id="ov-stats"></div>
+
+        <div class="two-col section-gap">
+          <div class="panel">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">Latest incident timeline<span id="ov-timeline-id" class="faint"></span></div>
+            <ul class="timeline" id="ov-timeline"></ul>
+          </div>
+          <div class="panel">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">Severity mix</div>
+            <div id="ov-severity"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ALERTS -->
+      <section class="view" id="view-alerts">
+        <div class="view-head">
+          <div class="view-eyebrow">Alert Intake</div>
+          <div class="view-title">EDR alerts</div>
+          <div class="view-desc">Pulled from <span class="mono">/alerts</span>. Select an alert to inspect it, review the action log, or trigger the containment playbook.</div>
+        </div>
+        <div class="panel">
+          <span class="bl"></span><span class="br"></span>
+          <div class="panel-title">All alerts<button class="btn small ghost" id="refreshAlerts">Refresh</button></div>
+          <div id="alertsTableWrap"></div>
+        </div>
+        <div class="detail-drawer" id="alertDrawer">
+          <div class="panel section-gap">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">Alert detail <button class="btn small ghost close-drawer" id="closeAlertDrawer">Close</button></div>
+            <div class="two-col">
+              <div>
+                <div id="alertDetailKv"></div>
+                <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+                  <button class="btn primary small" id="runPlaybookBtn">Run containment playbook</button>
+                  <button class="btn small ghost" id="loadActionsBtn">Load action log</button>
+                </div>
+                <div class="action-result pending" id="playbookResult">No playbook run yet.</div>
+              </div>
+              <div>
+                <div class="panel-title" style="margin-top:0;">Action log</div>
+                <ul class="timeline" id="actionsTimeline"><li class="faint" style="padding:4px 0;">Load the action log to see it here.</li></ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONTAINMENT -->
+      <section class="view" id="view-containment">
+        <div class="view-head">
+          <div class="view-eyebrow">Containment</div>
+          <div class="view-title">Isolate hosts &amp; suspend identities</div>
+          <div class="view-desc">Every action below runs against <span class="mono">-preview</span> endpoints: always <b>dry-run</b>, never touches a real Defender or Azure AD tenant, no approval code required.</div>
+        </div>
+        <div class="grid cols-3">
+          <div class="panel">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">Host isolation preview</div>
+            <div class="field"><label>Hostname</label><input id="c-hostname" placeholder="WIN-CORP-0231"></div>
+            <button class="btn primary small" id="c-isolate-btn">Preview isolate-host</button>
+            <div class="action-result pending" id="c-isolate-result">No action run yet.</div>
+          </div>
+          <div class="panel">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">Suspend user preview</div>
+            <div class="field"><label>Username / UPN</label><input id="c-username" placeholder="j.doe@corp.local"></div>
+            <button class="btn primary small" id="c-suspend-btn">Preview suspend-user</button>
+            <div class="action-result pending" id="c-suspend-result">No action run yet.</div>
+          </div>
+          <div class="panel">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">Revoke sessions preview</div>
+            <div class="field"><label>Username / UPN</label><input id="c-revoke-username" placeholder="j.doe@corp.local"></div>
+            <button class="btn primary small" id="c-revoke-btn">Preview revoke-sessions</button>
+            <div class="action-result pending" id="c-revoke-result">No action run yet.</div>
+          </div>
+        </div>
+
+        <div class="panel section-gap warn">
+          <span class="bl"></span><span class="br"></span>
+          <div class="panel-title">Full approved containment (host + user + sessions)</div>
+          <div class="hint" style="margin:0 0 12px;">Requires the approval code configured as <span class="mono">REAL_ACTION_APPROVAL_CODE</span> on the server. Leave <span class="mono">dry_run</span> checked unless this is an authorized lab tenant.</div>
+          <div class="field-row">
+            <div class="field"><label>Hostname</label><input id="fc-hostname" placeholder="WIN-CORP-0231"></div>
+            <div class="field"><label>IP address</label><input id="fc-ip" placeholder="10.20.4.18"></div>
+            <div class="field"><label>Username</label><input id="fc-username" placeholder="j.doe@corp.local"></div>
+            <div class="field"><label>Approval code</label><input id="fc-code" type="password" placeholder="••••••••"></div>
+          </div>
+          <div class="check-row"><input type="checkbox" id="fc-dryrun" checked><label for="fc-dryrun">dry_run (recommended — leave checked)</label></div>
+          <button class="btn danger small" id="fc-run-btn">Run full containment</button>
+          <div class="action-result pending" id="fc-result">No action run yet.</div>
+        </div>
+      </section>
+
+      <!-- FORENSICS -->
+      <section class="view" id="view-forensics">
+        <div class="view-head">
+          <div class="view-eyebrow">Evidence</div>
+          <div class="view-title">Forensic collection &amp; chain of custody</div>
+          <div class="view-desc">Runs against <span class="mono">/forensics/kape/run</span>, <span class="mono">/forensics/volatility/run</span> and <span class="mono">/evidence/{alert_id}/upload-s3</span>. Defaults to preview mode.</div>
+        </div>
+        <div class="grid cols-3">
+          <div class="panel">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">KAPE triage collection</div>
+            <div class="field"><label>Alert ID</label><input id="k-alert" placeholder="SIM-2188"></div>
+            <div class="field"><label>Target source</label><input id="k-source" value="C:"></div>
+            <div class="field"><label>Module set</label><input id="k-module" value="!BasicCollection"></div>
+            <button class="btn primary small" id="k-run-btn">Run KAPE (preview)</button>
+            <div class="action-result pending" id="k-result">No action run yet.</div>
+          </div>
+          <div class="panel">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">Volatility memory analysis</div>
+            <div class="field"><label>Alert ID</label><input id="v-alert" placeholder="SIM-2188"></div>
+            <div class="field"><label>Memory dump path</label><input id="v-path" placeholder="/evidence/SIM-2188/mem.raw"></div>
+            <div class="field"><label>Plugin</label><input id="v-plugin" value="windows.info"></div>
+            <button class="btn primary small" id="v-run-btn">Run Volatility (preview)</button>
+            <div class="action-result pending" id="v-result">No action run yet.</div>
+          </div>
+          <div class="panel">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">WORM S3 evidence upload</div>
+            <div class="field"><label>Alert ID</label><input id="s3-alert" placeholder="SIM-2188"></div>
+            <div class="field"><label>File path</label><input id="s3-path" placeholder="/evidence/SIM-2188/triage.zip"></div>
+            <button class="btn primary small" id="s3-run-btn">Upload (preview)</button>
+            <div class="action-result pending" id="s3-result">No action run yet.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TICKETS -->
+      <section class="view" id="view-tickets">
+        <div class="view-head">
+          <div class="view-eyebrow">Ticketing</div>
+          <div class="view-title">Incident tickets</div>
+          <div class="view-desc">Creates a Jira / ServiceNow / mock ticket via <span class="mono">POST /tickets/{alert_id}/create</span> and lists existing ones via <span class="mono">GET /tickets/{alert_id}</span>.</div>
+        </div>
+        <div class="two-col">
+          <div class="panel">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">Create ticket</div>
+            <div class="field"><label>Alert ID</label><input id="t-alert" placeholder="SIM-2188"></div>
+            <div class="field"><label>Provider</label>
+              <select id="t-provider">
+                <option value="mock">mock</option>
+                <option value="jira">jira</option>
+                <option value="servicenow">servicenow</option>
+              </select>
+            </div>
+            <button class="btn primary small" id="t-create-btn">Create ticket</button>
+            <div class="action-result pending" id="t-create-result">No ticket created yet.</div>
+          </div>
+          <div class="panel">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">Look up tickets<button class="btn small ghost" id="t-lookup-btn">Fetch</button></div>
+            <div class="field"><label>Alert ID</label><input id="t-lookup-alert" placeholder="SIM-2188"></div>
+            <div id="t-lookup-result" class="action-result pending">No lookup yet.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RESPONSE TIME -->
+      <section class="view" id="view-response">
+        <div class="view-head">
+          <div class="view-eyebrow">SLA Tracking</div>
+          <div class="view-title">Response-time breakdown</div>
+          <div class="view-desc">Stage timings computed straight from the database's own timestamps — detection to first action, containment, evidence, and ticket.</div>
+        </div>
+        <div class="two-col">
+          <div class="panel">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">Single incident</div>
+            <div class="field-row">
+              <div class="field" style="flex:2;"><label>Alert ID</label><input id="rt-alert" placeholder="SIM-2188"></div>
+              <div class="field" style="align-self:flex-end;"><button class="btn primary small" id="rt-run-btn" style="margin-top:2px;">Fetch timing</button></div>
+            </div>
+            <div id="rt-bars"></div>
+          </div>
+          <div class="panel">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">Fleet summary (last 50)<button class="btn small ghost" id="rt-fleet-btn">Fetch</button></div>
+            <div id="rt-fleet"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SIMULATION -->
+      <section class="view" id="view-simulation">
+        <div class="view-head">
+          <div class="view-eyebrow">Table-top Exercise</div>
+          <div class="view-title">Run a full simulated incident</div>
+          <div class="view-desc">Fires <span class="mono">POST /simulation/tabletop-exercise</span> — generates a fake EDR alert and runs it through ingestion, containment, forensics, and ticketing end to end. Safe to run repeatedly.</div>
+        </div>
+        <div class="two-col">
+          <div class="panel">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">Launch exercise</div>
+            <div class="field"><label>Hostname</label><input id="sim-hostname" value="SIM-WORKSTATION-01"></div>
+            <div class="field"><label>Username</label><input id="sim-username" value="sim.user"></div>
+            <div class="field"><label>Severity</label>
+              <select id="sim-severity">
+                <option value="high" selected>high</option>
+                <option value="critical">critical</option>
+                <option value="medium">medium</option>
+              </select>
+            </div>
+            <button class="btn danger" id="sim-run-btn">▶ Run tabletop exercise</button>
+          </div>
+          <div class="panel">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">Total response time</div>
+            <div style="text-align:center;padding:14px 0;">
+              <div class="stopwatch" id="sim-stopwatch">—</div>
+              <div class="faint mono" style="margin-top:6px;font-size:10.5px;">SECONDS, DETECTION → LAST EVENT</div>
+            </div>
+            <div id="sim-stage-bars"></div>
+          </div>
+        </div>
+        <div class="panel section-gap">
+          <span class="bl"></span><span class="br"></span>
+          <div class="panel-title">Exercise result</div>
+          <div class="action-result pending" id="sim-result">Run an exercise to see the full response payload.</div>
+        </div>
+      </section>
+
+      <!-- SAFETY -->
+      <section class="view" id="view-safety">
+        <div class="view-head">
+          <div class="view-eyebrow">Guardrails</div>
+          <div class="view-title">Safety configuration &amp; production readiness</div>
+          <div class="view-desc">Confirms mock-mode defaults, dry-run gating, and which real integrations are actually wired up, straight from <span class="mono">/safety/config</span> and <span class="mono">/readiness/production</span>.</div>
+        </div>
+        <div class="two-col">
+          <div class="panel">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">Safety guard config<button class="btn small ghost" id="safety-refresh">Refresh</button></div>
+            <div id="safety-kv"></div>
+          </div>
+          <div class="panel">
+            <span class="bl"></span><span class="br"></span>
+            <div class="panel-title">Production readiness</div>
+            <ul class="checklist" id="readiness-list"></ul>
+          </div>
+        </div>
+        <div class="panel section-gap">
+          <span class="bl"></span><span class="br"></span>
+          <div class="panel-title">Integration status<button class="btn small ghost" id="integrations-refresh">Refresh</button></div>
+          <div class="grid cols-4" id="integrations-grid"></div>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="ledger">
+      <span class="ledger-label"><span class="lg-dot"></span>Custody ledger</span>
+      <div class="ledger-track"><div class="ledger-scroll" id="ledgerScroll"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- State ---------- */
+  const state = {
+    connected:false,
+    demo:false,
+    apiBase: "http://127.0.0.1:8000",
+    alerts: [],
+    selectedAlertId: null,
+  };
+
+  const $ = (sel, root) => (root||document).querySelector(sel);
+  const $$ = (sel, root) => Array.from((root||document).querySelectorAll(sel));
+
+  /* ---------- Demo dataset (used when no backend is reachable) ---------- */
+  const DEMO = {
+    alerts: [
+      {alert_id:"SIM-2188", severity:"critical", detection_type:"ransomware_behavior", hostname:"WIN-FIN-0231", ip_address:"10.20.4.18", username:"m.alvarez", process_name:"svch0st.exe", process_hash:"a13f...9e02", description:"Mass file rename + shadow copy deletion detected", status:"contained", created_at:"2026-08-03T05:12:04Z"},
+      {alert_id:"SIM-2187", severity:"high", detection_type:"lateral_movement", hostname:"WIN-ENG-0110", ip_address:"10.20.6.44", username:"r.chen", process_name:"psexec.exe", process_hash:"7bd1...c451", description:"Suspicious PsExec usage from finance subnet", status:"contained", created_at:"2026-08-02T22:47:31Z"},
+      {alert_id:"SIM-2186", severity:"medium", detection_type:"credential_dumping", hostname:"WIN-HR-0044", ip_address:"10.20.2.9", username:"a.osei", process_name:"lsass_dump.exe", process_hash:"e902...11ab", description:"LSASS memory access flagged by EDR", status:"received", created_at:"2026-08-02T19:03:10Z"},
+      {alert_id:"SIM-2185", severity:"high", detection_type:"ransomware_behavior", hostname:"WIN-OPS-0077", ip_address:"10.20.9.61", username:"t.nilsson", process_name:"lockbit_stub.exe", process_hash:"33cf...aa10", description:"Rapid encryption pattern on shared drive", status:"contained", created_at:"2026-08-01T14:22:55Z"},
+    ],
+    executive: {
+      platform:"Ransomware IR Orchestrator", status:"Healthy",
+      security_metrics:{ total_alerts:4, contained_alerts:3, open_alerts:1, critical_alerts:1, high_alerts:2, medium_alerts:1, low_alerts:0, avg_response_seconds:0.18 },
+      timeline:{ alert_id:"SIM-2188", events:[
+        {label:"Alert ingested", detail:"EDR webhook received, alert parsed", at:"05:12:04"},
+        {label:"Host isolated", detail:"WIN-FIN-0231 isolated (Selective)", at:"05:12:04"},
+        {label:"User suspended", detail:"m.alvarez disabled in Azure AD", at:"05:12:05"},
+        {label:"Sessions revoked", detail:"All active sessions revoked", at:"05:12:05"},
+        {label:"Evidence collected", detail:"KAPE triage + memory capture stored", at:"05:12:09"},
+        {label:"Ticket filed", detail:"INC-40881 opened (mock)", at:"05:12:10"},
+      ]},
+      incident_summary:{ alert_id:"SIM-001", status:"contained" }
+    },
+    safety:{ use_real_edr:false, use_real_idp:false, require_manual_approval:true, allowed_test_hosts:["WIN-LAB-01","WIN-LAB-02"], allowed_test_users:["lab.user1","lab.user2"] },
+    readiness:{ edr_configured:false, idp_configured:false, aws_configured:false, ticketing_configured:false, notifications_configured:false, overall_status:"lab_ready_not_production" },
+    integrations:{
+      defender:{configured:false, mode:"mock"}, graph:{configured:false, mode:"mock"},
+      aws:{configured:false, mode:"local_simulator"}, ticketing:{configured:false, mode:"mock"},
+      slack:{configured:false, mode:"mock"}, teams:{configured:false, mode:"mock"}
+    },
+    responseTime: { alert_id:"SIM-2188", detection_to_first_action_seconds:0.03, detection_to_containment_seconds:0.05, detection_to_evidence_collected_seconds:0.12, detection_to_ticket_filed_seconds:0.16, total_response_time_seconds:0.18 },
+    fleet: { incidents_measured:4, average_total_response_seconds:0.21, fastest_total_response_seconds:0.16, slowest_total_response_seconds:0.29 },
+    actions: [
+      {id:1, action_type:"host_isolation", target:"WIN-FIN-0231", status:"success", started_at:"05:12:04", completed_at:"05:12:04"},
+      {id:2, action_type:"user_suspension", target:"m.alvarez", status:"success", started_at:"05:12:05", completed_at:"05:12:05"},
+      {id:3, action_type:"session_revocation", target:"m.alvarez", status:"success", started_at:"05:12:05", completed_at:"05:12:05"},
+    ],
+    tickets: [{id:"INC-40881", provider:"mock", alert_id:"SIM-2188", status:"open", created_at:"2026-08-03T05:12:10Z"}]
+  };
+
+  function fakeHash(seed){
+    let h=0; const s=String(seed)+Date.now();
+    for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))>>>0;}
+    return h.toString(16).padStart(8,"0").slice(0,8);
+  }
+
+  /* ---------- Ledger (signature element) ---------- */
+  const ledgerScroll = $("#ledgerScroll");
+  let ledgerEntries = [];
+  function pushLedger(action, target){
+    const entry = {hash: fakeHash(action+target), action, target, t: new Date().toISOString().slice(11,19)};
+    ledgerEntries.unshift(entry);
+    ledgerEntries = ledgerEntries.slice(0, 24);
+    renderLedger();
+  }
+  function renderLedger(){
+    if(!ledgerEntries.length){
+      ledgerScroll.innerHTML = `<div class="ledger-item faint">awaiting activity — logged actions appear here, hash-chained in order</div>`;
+      return;
+    }
+    const items = ledgerEntries.map(e =>
+      `<div class="ledger-item"><span class="hash">#${e.hash}</span><span>${e.action}</span><span class="faint">→</span><span>${e.target}</span><span class="ok">✓</span><span class="faint">${e.t}</span></div>`
+    ).join("");
+    // duplicate for seamless scroll loop
+    ledgerScroll.innerHTML = items + items;
+  }
+  renderLedger();
+  // seed a few
+  ["alert_ingested:SIM-2188","host_isolation:WIN-FIN-0231","user_suspension:m.alvarez","evidence_collected:SIM-2188"].forEach(s=>{
+    const [a,t] = s.split(":"); pushLedger(a,t);
+  });
+
+  /* ---------- Nav ---------- */
+  const titles = {
+    overview:["Overview","Detection → containment → forensics → ticketing, in one pane"],
+    alerts:["Alerts","Every EDR alert the orchestrator has ingested"],
+    containment:["Containment","Isolate hosts and suspend identities — safely"],
+    forensics:["Forensics & Evidence","KAPE, Volatility, and WORM evidence storage"],
+    tickets:["Tickets","Jira / ServiceNow / mock incident tickets"],
+    response:["Response Time","Stage-by-stage SLA breakdown"],
+    simulation:["Tabletop Simulation","End-to-end simulated incidents, timed"],
+    safety:["Safety & Readiness","Guardrails and production-readiness status"],
+  };
+  $$(".navlink").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      $$(".navlink").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      const view = btn.dataset.view;
+      $$(".view").forEach(v=>v.classList.remove("active"));
+      $("#view-"+view).classList.add("active");
+      $("#topTitle").textContent = titles[view][0];
+      $("#topSub").textContent = titles[view][1];
+      if(window.innerWidth<=860){$("#sidebar").classList.remove("open");}
+    });
+  });
+  $("#navToggle").addEventListener("click", ()=> $("#sidebar").classList.toggle("open"));
+  if(window.innerWidth<=860){$("#navToggle").style.display="inline-block";}
+
+  /* ---------- API helper ---------- */
+  async function api(path, {method="GET", params=null, timeout=6000} = {}){
+    let url = state.apiBase.replace(/\/$/,"") + path;
+    if(params){
+      const qs = Object.entries(params).filter(([,v])=>v!==undefined && v!==null && v!=="").map(([k,v])=>`${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&");
+      if(qs) url += (url.includes("?")?"&":"?") + qs;
+    }
+    const ctrl = new AbortController();
+    const to = setTimeout(()=>ctrl.abort(), timeout);
+    try{
+      const res = await fetch(url, {method, signal: ctrl.signal, headers:{"Accept":"application/json"}});
+      clearTimeout(to);
+      let body;
+      try{ body = await res.json(); } catch(e){ body = null; }
+      if(!res.ok){
+        const err = new Error((body && (body.detail||body.message)) || `HTTP ${res.status}`);
+        err.status = res.status; err.body = body;
+        throw err;
+      }
+      return body;
+    } catch(e){
+      clearTimeout(to);
+      throw e;
+    }
+  }
+
+  function setConn(mode, label){
+    const dot = $("#connDot");
+    dot.className = "conn-dot " + mode;
+    $("#connLabel").textContent = label;
+    $("#demoBanner").classList.toggle("show", mode==="demo");
+    state.connected = mode==="live";
+    state.demo = mode==="demo";
+  }
+
+  async function tryConnect(){
+    state.apiBase = $("#apiBase").value.trim() || "http://127.0.0.1:8000";
+    setConn("down","connecting…");
+    try{
+      const health = await api("/health", {timeout:4000});
+      setConn("live", `connected — ${health.environment||"live"}`);
+      $("#footEnv").textContent = health.environment || "live";
+      await loadEverything(false);
+    }catch(e){
+      setConn("demo","demo data (no live API)");
+      loadDemo();
+    }
+  }
+  $("#connectBtn").addEventListener("click", tryConnect);
+  $("#demoBtn").addEventListener("click", ()=>{ setConn("demo","demo data"); loadDemo(); });
+
+  /* ---------- Severity / status badge helpers ---------- */
+  function sevBadge(sev){
+    sev = (sev||"low").toLowerCase();
+    return `<span class="badge sev-${sev}"><span class="dot"></span>${sev}</span>`;
+  }
+  function statusBadge(status){
+    const s = (status||"received").toLowerCase();
+    const cls = ["contained","done","success"].includes(s) ? s : (["received","pending"].includes(s)?s:"pending");
+    return `<span class="badge status-${cls}"><span class="dot"></span>${s.replace(/_/g," ")}</span>`;
+  }
+  function fmtTime(v){
+    if(!v) return "—";
+    try{ const d = new Date(v); if(isNaN(d)) return String(v); return d.toLocaleString(); }catch(e){ return String(v); }
+  }
+
+  /* ---------- Overview ---------- */
+  function renderOverview(exec, alerts){
+    const m = exec.security_metrics || {};
+    const total = m.total_alerts ?? alerts.length;
+    const contained = m.contained_alerts ?? alerts.filter(a=>a.status==="contained").length;
+    const open = m.open_alerts ?? (total-contained);
+    const avg = m.avg_response_seconds;
+    $("#ov-stats").innerHTML = `
+      <div class="panel stat-panel"><span class="bl"></span><span class="br"></span>
+        <div class="panel-title">Total alerts</div><div class="num blue">${total}</div><div class="sub">ingested to date</div></div>
+      <div class="panel stat-panel ok"><span class="bl"></span><span class="br"></span>
+        <div class="panel-title">Contained</div><div class="num green">${contained}</div><div class="sub">playbook completed</div></div>
+      <div class="panel stat-panel warn"><span class="bl"></span><span class="br"></span>
+        <div class="panel-title">Open</div><div class="num amber">${open}</div><div class="sub">awaiting response</div></div>
+      <div class="panel stat-panel"><span class="bl"></span><span class="br"></span>
+        <div class="panel-title">Avg. response</div><div class="num">${avg!=null? avg.toFixed(2)+"s" : "—"}</div><div class="sub">detection → last event</div></div>
+    `;
+    // threat ring: share of critical+high among total
+    const crit = m.critical_alerts ?? alerts.filter(a=>a.severity==="critical").length;
+    const high = m.high_alerts ?? alerts.filter(a=>a.severity==="high").length;
+    const pct = total ? Math.round(((crit+high)/total)*100) : 0;
+    const circumference = 94.2;
+    $("#threatRingVal").style.strokeDashoffset = circumference - (circumference*pct/100);
+    $("#threatNum").textContent = pct+"%";
+    $("#threatRingVal").style.stroke = pct>60?"var(--red)": pct>25?"var(--amber)":"var(--green)";
+
+    const tl = exec.timeline || {};
+    $("#ov-timeline-id").textContent = tl.alert_id ? " · "+tl.alert_id : "";
+    const events = tl.events || [];
+    $("#ov-timeline").innerHTML = events.length ? events.map(ev=>`
+      <li><div class="t-dot"></div><div class="t-body">
+        <div class="t-head"><span>${ev.label||ev.action||"event"}</span><span class="t-time">${ev.at||ev.time||""}</span></div>
+        <div class="t-detail">${ev.detail||""}</div>
+      </div></li>`).join("") : `<li class="faint" style="padding:4px 0;">No timeline data yet — run the tabletop exercise to generate one.</li>`;
+
+    const sevCounts = {critical:crit, high:high, medium:m.medium_alerts ?? alerts.filter(a=>a.severity==="medium").length, low:m.low_alerts ?? alerts.filter(a=>a.severity==="low").length};
+    const maxV = Math.max(1, ...Object.values(sevCounts));
+    $("#ov-severity").innerHTML = Object.entries(sevCounts).map(([k,v])=>`
+      <div class="bar-row"><div class="lbl">${sevBadge(k)}</div><div class="bar-track"><div class="bar-fill" style="width:${(v/maxV)*100}%"></div></div><div class="val">${v}</div></div>
+    `).join("");
+  }
+
+  /* ---------- Alerts ---------- */
+  function renderAlertsTable(alerts){
+    state.alerts = alerts;
+    if(!alerts.length){
+      $("#alertsTableWrap").innerHTML = `<div class="empty"><div class="glyph">▢</div>No alerts ingested yet. POST to <span class="mono">/webhooks/edr</span> or run a tabletop exercise.</div>`;
+      return;
+    }
+    $("#alertsTableWrap").innerHTML = `
+      <table><thead><tr><th>Alert ID</th><th>Severity</th><th>Type</th><th>Host</th><th>User</th><th>Status</th><th>Received</th></tr></thead>
+      <tbody>${alerts.map(a=>`
+        <tr class="rowlink" data-id="${a.alert_id}">
+          <td class="mono">${a.alert_id}</td>
+          <td>${sevBadge(a.severity)}</td>
+          <td class="dim">${(a.detection_type||"").replace(/_/g," ")}</td>
+          <td class="mono">${a.hostname}</td>
+          <td class="mono dim">${a.username}</td>
+          <td>${statusBadge(a.status)}</td>
+          <td class="faint mono" style="font-size:10.5px;">${fmtTime(a.created_at)}</td>
+        </tr>`).join("")}</tbody></table>`;
+    $$("tr.rowlink", $("#alertsTableWrap")).forEach(tr=>{
+      tr.addEventListener("click", ()=> openAlertDetail(tr.dataset.id));
+    });
+  }
+
+  function openAlertDetail(id){
+    state.selectedAlertId = id;
+    const a = state.alerts.find(x=>x.alert_id===id);
+    if(!a) return;
+    $("#alertDrawer").classList.add("show");
+    $("#alertDetailKv").innerHTML = [
+      ["alert_id",a.alert_id],["severity",a.severity],["detection_type",a.detection_type],
+      ["hostname",a.hostname],["ip_address",a.ip_address],["username",a.username],
+      ["process_name",a.process_name],["process_hash",a.process_hash],["status",a.status],
+      ["description",a.description],["created_at",fmtTime(a.created_at)],
+    ].map(([k,v])=>`<div class="kv"><span class="k">${k}</span><span class="v">${v??"—"}</span></div>`).join("");
+    $("#playbookResult").className="action-result pending";
+    $("#playbookResult").textContent = "No playbook run yet.";
+    $("#actionsTimeline").innerHTML = `<li class="faint" style="padding:4px 0;">Load the action log to see it here.</li>`;
+    $("#alertDrawer").scrollIntoView({behavior:"smooth", block:"nearest"});
+  }
+  $("#closeAlertDrawer").addEventListener("click", ()=> $("#alertDrawer").classList.remove("show"));
+
+  $("#runPlaybookBtn").addEventListener("click", async ()=>{
+    const id = state.selectedAlertId;
+    if(!id) return;
+    const box = $("#playbookResult");
+    box.textContent = "Running containment playbook…"; box.className="action-result pending";
+    try{
+      let result;
+      if(state.demo){
+        await sleep(600);
+        result = {message:"Containment playbook executed successfully", result:{alert_id:id, host_isolation:"success", user_suspension:"success", session_revocation:"success", status:"contained"}};
+      } else {
+        result = await api(`/playbooks/${encodeURIComponent(id)}/run`, {method:"POST"});
+      }
+      box.textContent = JSON.stringify(result, null, 2);
+      box.className="action-result";
+      pushLedger("playbook_run", id);
+      const a = state.alerts.find(x=>x.alert_id===id); if(a) a.status="contained";
+      renderAlertsTable(state.alerts);
+    }catch(e){
+      box.textContent = "Error: "+e.message; box.className="action-result";
+    }
+  });
+
+  $("#loadActionsBtn").addEventListener("click", async ()=>{
+    const id = state.selectedAlertId;
+    if(!id) return;
+    const list = $("#actionsTimeline");
+    list.innerHTML = `<li class="faint" style="padding:4px 0;">Loading…</li>`;
+    try{
+      let actions;
+      if(state.demo){ await sleep(300); actions = DEMO.actions; }
+      else { const r = await api(`/actions/${encodeURIComponent(id)}`); actions = r.actions || []; }
+      list.innerHTML = actions.length ? actions.map(a=>`
+        <li><div class="t-dot" style="background:var(--green);"></div><div class="t-body">
+          <div class="t-head"><span>${a.action_type}</span><span class="t-time">${a.status}</span></div>
+          <div class="t-detail mono">${a.target} · ${fmtTime(a.started_at)} → ${fmtTime(a.completed_at)}</div>
+        </div></li>`).join("") : `<li class="faint" style="padding:4px 0;">No actions recorded for this alert yet.</li>`;
+    }catch(e){
+      list.innerHTML = `<li class="faint" style="padding:4px 0;">Error: ${e.message}</li>`;
+    }
+  });
+
+  $("#refreshAlerts").addEventListener("click", ()=> loadAlerts());
+
+  /* ---------- Containment view ---------- */
+  async function runPreview(btnId, resultId, path, params, ledgerLabel){
+    const btn = $("#"+btnId), box = $("#"+resultId);
+    btn.disabled = true;
+    box.textContent = "Running…"; box.className="action-result pending";
+    try{
+      let result;
+      if(state.demo){
+        await sleep(500);
+        result = {status:"success", dry_run:true, message:"Preview — no real system was contacted", params};
+      } else {
+        result = await api(path, {method:"POST", params});
+      }
+      box.textContent = JSON.stringify(result, null, 2); box.className="action-result";
+      pushLedger(ledgerLabel, Object.values(params)[0]||"target");
+    }catch(e){
+      box.textContent = "Error: "+e.message; box.className="action-result";
+    }finally{ btn.disabled = false; }
+  }
+  $("#c-isolate-btn").addEventListener("click", ()=>{
+    const hostname = $("#c-hostname").value.trim(); if(!hostname) return alert("Enter a hostname");
+    runPreview("c-isolate-btn","c-isolate-result","/edr/defender/machines/isolate-preview",{hostname},"isolate_preview");
+  });
+  $("#c-suspend-btn").addEventListener("click", ()=>{
+    const username = $("#c-username").value.trim(); if(!username) return alert("Enter a username");
+    runPreview("c-suspend-btn","c-suspend-result","/idp/azure/users/suspend-preview",{username},"suspend_preview");
+  });
+  $("#c-revoke-btn").addEventListener("click", ()=>{
+    const username = $("#c-revoke-username").value.trim(); if(!username) return alert("Enter a username");
+    runPreview("c-revoke-btn","c-revoke-result","/idp/azure/users/revoke-sessions-preview",{username},"revoke_preview");
+  });
+  $("#fc-run-btn").addEventListener("click", async ()=>{
+    const hostname=$("#fc-hostname").value.trim(), ip_address=$("#fc-ip").value.trim(), username=$("#fc-username").value.trim(), approval_code=$("#fc-code").value.trim();
+    const dry_run = $("#fc-dryrun").checked;
+    if(!hostname||!ip_address||!username||!approval_code) return alert("Fill in all fields, including the approval code.");
+    const box = $("#fc-result");
+    box.textContent="Running…"; box.className="action-result pending";
+    try{
+      let result;
+      if(state.demo){ await sleep(700); result={status: dry_run?"preview_success":"blocked_needs_real_config", dry_run, hostname, ip_address, username}; }
+      else { result = await api("/response/full-containment-approved", {method:"POST", params:{hostname, ip_address, username, approval_code, dry_run}}); }
+      box.textContent = JSON.stringify(result, null, 2); box.className="action-result";
+      pushLedger("full_containment", hostname);
+    }catch(e){ box.textContent="Error: "+e.message; box.className="action-result"; }
+  });
+
+  /* ---------- Forensics view ---------- */
+  $("#k-run-btn").addEventListener("click", async ()=>{
+    const alert_id=$("#k-alert").value.trim(), target_source=$("#k-source").value.trim(), module_set=$("#k-module").value.trim();
+    if(!alert_id) return alert("Enter an alert ID");
+    const box=$("#k-result"); box.textContent="Running…"; box.className="action-result pending";
+    try{
+      let result;
+      if(state.demo){ await sleep(500); result={status:"preview_success", tool:"KAPE", alert_id, artifacts_collected:5}; }
+      else { result = await api("/forensics/kape/run",{method:"POST",params:{alert_id, target_source, module_set, execute_real:false}}); }
+      box.textContent=JSON.stringify(result,null,2); box.className="action-result";
+      pushLedger("kape_collection", alert_id);
+    }catch(e){ box.textContent="Error: "+e.message; box.className="action-result"; }
+  });
+  $("#v-run-btn").addEventListener("click", async ()=>{
+    const alert_id=$("#v-alert").value.trim(), memory_dump_path=$("#v-path").value.trim(), plugin=$("#v-plugin").value.trim();
+    if(!alert_id||!memory_dump_path) return alert("Enter alert ID and memory dump path");
+    const box=$("#v-result"); box.textContent="Running…"; box.className="action-result pending";
+    try{
+      let result;
+      if(state.demo){ await sleep(500); result={status:"preview_success", tool:"Volatility3", plugin, alert_id}; }
+      else { result = await api("/forensics/volatility/run",{method:"POST",params:{alert_id, memory_dump_path, plugin, execute_real:false}}); }
+      box.textContent=JSON.stringify(result,null,2); box.className="action-result";
+      pushLedger("volatility_run", alert_id);
+    }catch(e){ box.textContent="Error: "+e.message; box.className="action-result"; }
+  });
+  $("#s3-run-btn").addEventListener("click", async ()=>{
+    const alert_id=$("#s3-alert").value.trim(), file_path=$("#s3-path").value.trim();
+    if(!alert_id||!file_path) return alert("Enter alert ID and file path");
+    const box=$("#s3-result"); box.textContent="Uploading…"; box.className="action-result pending";
+    try{
+      let result;
+      if(state.demo){ await sleep(500); result={status:"preview_success", bucket:"local-simulator", object_key:`evidence/${alert_id}/`+file_path.split("/").pop(), sha256:fakeHash(file_path)}; }
+      else { result = await api(`/evidence/${encodeURIComponent(alert_id)}/upload-s3`,{method:"POST",params:{file_path, execute_real:false, log_to_db:true}}); }
+      box.textContent=JSON.stringify(result,null,2); box.className="action-result";
+      pushLedger("s3_evidence_upload", alert_id);
+    }catch(e){ box.textContent="Error: "+e.message; box.className="action-result"; }
+  });
+
+  /* ---------- Tickets view ---------- */
+  $("#t-create-btn").addEventListener("click", async ()=>{
+    const alert_id=$("#t-alert").value.trim(), provider=$("#t-provider").value;
+    if(!alert_id) return alert("Enter an alert ID");
+    const box=$("#t-create-result"); box.textContent="Creating…"; box.className="action-result pending";
+    try{
+      let result;
+      if(state.demo){ await sleep(400); result={id:"INC-"+Math.floor(40000+Math.random()*9000), provider, alert_id, status:"open"}; }
+      else { result = await api(`/tickets/${encodeURIComponent(alert_id)}/create`,{method:"POST",params:{provider, execute_real:false, log_to_db:true}}); }
+      box.textContent=JSON.stringify(result,null,2); box.className="action-result";
+      pushLedger("ticket_created", alert_id);
+    }catch(e){ box.textContent="Error: "+e.message; box.className="action-result"; }
+  });
+  $("#t-lookup-btn").addEventListener("click", async ()=>{
+    const alert_id=$("#t-lookup-alert").value.trim();
+    if(!alert_id) return alert("Enter an alert ID");
+    const box=$("#t-lookup-result"); box.textContent="Loading…"; box.className="action-result pending";
+    try{
+      let result;
+      if(state.demo){ await sleep(300); result = DEMO.tickets.filter(t=>t.alert_id===alert_id || true); }
+      else { result = await api(`/tickets/${encodeURIComponent(alert_id)}`); }
+      box.textContent=JSON.stringify(result,null,2); box.className="action-result";
+    }catch(e){ box.textContent="Error: "+e.message; box.className="action-result"; }
+  });
+
+  /* ---------- Response time view ---------- */
+  function renderStageBars(target, data, order){
+    const maxV = Math.max(0.01, ...order.map(([,k])=>data[k]||0));
+    target.innerHTML = order.map(([label,key])=>{
+      const v = data[key]??0;
+      return `<div class="bar-row"><div class="lbl">${label}</div><div class="bar-track"><div class="bar-fill" style="width:${(v/maxV)*100}%"></div></div><div class="val">${v.toFixed(3)}s</div></div>`;
+    }).join("");
+  }
+  const STAGE_ORDER = [
+    ["Detection → first action","detection_to_first_action_seconds"],
+    ["Detection → containment","detection_to_containment_seconds"],
+    ["Detection → evidence collected","detection_to_evidence_collected_seconds"],
+    ["Detection → ticket filed","detection_to_ticket_filed_seconds"],
+    ["Total response time","total_response_time_seconds"],
+  ];
+  $("#rt-run-btn").addEventListener("click", async ()=>{
+    const alert_id=$("#rt-alert").value.trim(); if(!alert_id) return alert("Enter an alert ID");
+    const box = $("#rt-bars"); box.innerHTML = `<div class="faint" style="padding:8px 0;">Loading…</div>`;
+    try{
+      let data;
+      if(state.demo){ await sleep(350); data = {...DEMO.responseTime, alert_id}; }
+      else { data = await api(`/response-time/${encodeURIComponent(alert_id)}`); }
+      renderStageBars(box, data, STAGE_ORDER);
+    }catch(e){ box.innerHTML = `<div class="faint" style="padding:8px 0;">Error: ${e.message}</div>`; }
+  });
+  $("#rt-fleet-btn").addEventListener("click", async ()=>{
+    const box = $("#rt-fleet"); box.innerHTML = `<div class="faint" style="padding:8px 0;">Loading…</div>`;
+    try{
+      let data;
+      if(state.demo){ await sleep(350); data = DEMO.fleet; }
+      else { data = await api("/response-time/fleet/summary",{params:{limit:50}}); }
+      box.innerHTML = Object.entries(data).map(([k,v])=>`<div class="kv"><span class="k">${k.replace(/_/g," ")}</span><span class="v">${typeof v==="number"?v.toFixed(3):v}</span></div>`).join("");
+    }catch(e){ box.innerHTML = `<div class="faint" style="padding:8px 0;">Error: ${e.message}</div>`; }
+  });
+
+  /* ---------- Simulation view ---------- */
+  $("#sim-run-btn").addEventListener("click", async ()=>{
+    const hostname=$("#sim-hostname").value.trim()||"SIM-WORKSTATION-01";
+    const username=$("#sim-username").value.trim()||"sim.user";
+    const severity=$("#sim-severity").value;
+    const btn = $("#sim-run-btn"); btn.disabled = true; btn.textContent = "Running exercise…";
+    $("#sim-stopwatch").textContent = "…";
+    $("#sim-result").textContent = "Running…"; $("#sim-result").className="action-result pending";
+    try{
+      let result;
+      if(state.demo){
+        await sleep(900);
+        const newId = "SIM-"+Math.floor(2000+Math.random()*900);
+        result = {
+          exercise_type:"simulated_ransomware_tabletop", alert_id:newId,
+          wall_clock_execution_seconds: +(0.12+Math.random()*0.15).toFixed(3),
+          playbook_status:"forensics_completed", total_actions_taken:6, total_artifacts_collected:5, ticket_status:"mock_created",
+          response_time:{
+            detection_to_first_action_seconds:+(0.02+Math.random()*0.02).toFixed(3),
+            detection_to_containment_seconds:+(0.04+Math.random()*0.03).toFixed(3),
+            detection_to_evidence_collected_seconds:+(0.1+Math.random()*0.05).toFixed(3),
+            detection_to_ticket_filed_seconds:+(0.14+Math.random()*0.05).toFixed(3),
+            total_response_time_seconds:+(0.15+Math.random()*0.06).toFixed(3),
+          }
+        };
+        DEMO.alerts.unshift({alert_id:newId, severity, detection_type:"ransomware_behavior", hostname, ip_address:"10.20.5.5", username, process_name:"lockbit_stub.exe", process_hash:fakeHash(newId), description:"Simulated tabletop exercise alert", status:"contained", created_at:new Date().toISOString()});
+        renderAlertsTable(DEMO.alerts);
+      } else {
+        result = await api("/simulation/tabletop-exercise", {method:"POST", params:{hostname, username, severity}});
+        await loadAlerts();
+      }
+      $("#sim-stopwatch").textContent = (result.response_time?.total_response_time_seconds ?? result.wall_clock_execution_seconds ?? 0).toFixed(3);
+      renderStageBars($("#sim-stage-bars"), result.response_time || {}, STAGE_ORDER);
+      $("#sim-result").textContent = JSON.stringify(result, null, 2); $("#sim-result").className="action-result";
+      pushLedger("tabletop_exercise", result.alert_id||hostname);
+    }catch(e){
+      $("#sim-result").textContent = "Error: "+e.message; $("#sim-result").className="action-result";
+      $("#sim-stopwatch").textContent = "ERR";
+    }finally{
+      btn.disabled=false; btn.textContent="▶ Run tabletop exercise";
+    }
+  });
+
+  /* ---------- Safety view ---------- */
+  function renderSafety(cfg, readiness, integrations){
+    $("#safety-kv").innerHTML = Object.entries(cfg).filter(([k])=>k!=="message").map(([k,v])=>{
+      const val = Array.isArray(v) ? (v.length?v.join(", "):"—") : String(v);
+      return `<div class="kv"><span class="k">${k}</span><span class="v">${val}</span></div>`;
+    }).join("");
+    $("#footSafety").textContent = cfg.use_real_edr || cfg.use_real_idp ? "REAL-CAPABLE" : "MOCK / DRY-RUN";
+
+    const items = readiness && Object.keys(readiness).length ? Object.entries(readiness) : Object.entries(DEMO.readiness);
+    $("#readiness-list").innerHTML = items.map(([k,v])=>{
+      const yes = v===true || v==="ready" || v==="configured";
+      return `<li><span class="cbox ${yes?"yes":"no"}">${yes?"✓":"·"}</span><span>${k.replace(/_/g," ")}</span><span class="faint mono" style="margin-left:auto;font-size:10.5px;">${typeof v==="boolean"?(v?"ready":"pending"):v}</span></li>`;
+    }).join("");
+
+    const integ = integrations || DEMO.integrations;
+    $("#integrations-grid").innerHTML = Object.entries(integ).map(([name,info])=>{
+      const configured = info && (info.configured===true);
+      return `<div class="panel stat-panel ${configured?"ok":""}"><span class="bl"></span><span class="br"></span>
+        <div class="panel-title">${name}</div>
+        <div class="num" style="font-size:16px;color:${configured?"var(--green)":"var(--text-faint)"};">${configured?"Configured":"Mock mode"}</div>
+        <div class="sub">${info && info.mode ? info.mode : "no live credentials"}</div></div>`;
+    }).join("");
+  }
+  $("#safety-refresh").addEventListener("click", loadSafety);
+  $("#integrations-refresh").addEventListener("click", loadSafety);
+
+  async function loadSafety(){
+    try{
+      let cfg, readiness;
+      if(state.demo){ cfg = DEMO.safety; readiness = DEMO.readiness; }
+      else{
+        cfg = await api("/safety/config");
+        readiness = await api("/readiness/production");
+      }
+      let integ = DEMO.integrations;
+      if(!state.demo){
+        try{
+          const [defender, falcon, graph, aws, ticketing, slack, teams] = await Promise.all([
+            api("/integrations/defender/status").catch(()=>({configured:false})),
+            api("/integrations/falcon/status").catch(()=>({configured:false})),
+            api("/integrations/graph/status").catch(()=>({configured:false})),
+            api("/integrations/aws/s3/status").catch(()=>({configured:false})),
+            api("/integrations/ticketing/status").catch(()=>({configured:false})),
+            api("/integrations/slack/status").catch(()=>({configured:false})),
+            api("/integrations/teams/status").catch(()=>({configured:false})),
+          ]);
+          integ = {defender, falcon, graph, aws, ticketing, slack, teams};
+        }catch(e){ /* keep demo integrations as fallback */ }
+      }
+      renderSafety(cfg, readiness, integ);
+    }catch(e){
+      renderSafety(DEMO.safety, DEMO.readiness, DEMO.integrations);
+    }
+  }
+
+  /* ---------- Loaders ---------- */
+  function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+  async function loadAlerts(){
+    try{
+      let alerts;
+      if(state.demo){ alerts = DEMO.alerts; }
+      else{ const r = await api("/alerts"); alerts = r.alerts || []; }
+      renderAlertsTable(alerts);
+      return alerts;
+    }catch(e){
+      renderAlertsTable([]);
+      return [];
+    }
+  }
+
+  async function loadOverview(alerts){
+    try{
+      let exec;
+      if(state.demo){ exec = DEMO.executive; }
+      else{ exec = await api("/dashboard/executive"); }
+      renderOverview(exec, alerts);
+    }catch(e){
+      renderOverview(DEMO.executive, alerts);
+    }
+  }
+
+  async function loadEverything(isDemo){
+    const alerts = await loadAlerts();
+    await loadOverview(alerts);
+    await loadSafety();
+  }
+
+  function loadDemo(){
+    $("#caseIdLabel").textContent = "CASE — DEMO-SANDBOX";
+    loadEverything(true);
+  }
+
+  /* ---------- Boot ---------- */
+  setConn("down","not connected");
+  renderAlertsTable([]);
+  renderOverview(DEMO.executive, []);
+  loadSafety();
+  // Attempt a silent auto-connect once on load
+  tryConnect();
+
+})();
+</script>
+</body>
+</html>

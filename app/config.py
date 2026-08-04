@@ -37,6 +37,9 @@ MDE_CLIENT_SECRET = os.getenv("MDE_CLIENT_SECRET", "change_me")
 MDE_API_BASE_URL = os.getenv("MDE_API_BASE_URL", "https://api.security.microsoft.com")
 MDE_AUTHORITY_URL = os.getenv("MDE_AUTHORITY_URL", "https://login.microsoftonline.com")
 MDE_SCOPE = os.getenv("MDE_SCOPE", "https://api.securitycenter.microsoft.com/.default")
+FALCON_CLIENT_ID = os.getenv("FALCON_CLIENT_ID", "change_me")
+FALCON_CLIENT_SECRET = os.getenv("FALCON_CLIENT_SECRET", "change_me")
+FALCON_API_BASE_URL = os.getenv("FALCON_API_BASE_URL", "https://api.crowdstrike.com")
 
 # Microsoft Graph / Azure AD
 GRAPH_TENANT_ID = os.getenv("GRAPH_TENANT_ID", "change_me")

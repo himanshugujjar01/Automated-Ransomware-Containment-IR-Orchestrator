@@ -24,6 +24,11 @@ def get_production_readiness_report() -> dict:
         config.MDE_CLIENT_SECRET
     )
 
+    falcon_ready = is_configured(
+        config.FALCON_CLIENT_ID,
+        config.FALCON_CLIENT_SECRET
+    )
+
     graph_ready = is_configured(
         config.GRAPH_TENANT_ID,
         config.GRAPH_CLIENT_ID,
@@ -71,6 +76,11 @@ def get_production_readiness_report() -> dict:
                 "configured": defender_ready,
                 "enabled": config.USE_REAL_EDR,
                 "status": "ready" if defender_ready else "credentials_pending"
+            },
+            "crowdstrike_falcon_edr": {
+                "configured": falcon_ready,
+                "enabled": config.USE_REAL_EDR,
+                "status": "ready" if falcon_ready else "credentials_pending"
             },
             "microsoft_graph_azure_ad": {
                 "configured": graph_ready,
